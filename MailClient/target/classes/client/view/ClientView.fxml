@@ -34,15 +34,21 @@
     <center>
         <SplitPane fx:id="mainSplitPane" dividerPositions="0.4" visible="false" managed="false">
             <items>
-                <VBox spacing="5.0">
-                    <padding>
-                        <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
-                    </padding>
-                    <children>
-                        <Label text="Inbox" styleClass="section-header" />
-                        <ListView fx:id="emailListView" VBox.vgrow="ALWAYS" onMouseClicked="#handleEmailSelection" />
-                    </children>
-                </VBox>
+                <!-- CORREZIONE: Aggiunto TabPane per gestire inbox/sent -->
+                <TabPane fx:id="folderTabPane" tabClosingPolicy="UNAVAILABLE">
+                    <tabs>
+                        <Tab fx:id="inboxTab" text="Posta in arrivo">
+                            <content>
+                                <ListView fx:id="inboxListView" />
+                            </content>
+                        </Tab>
+                        <Tab fx:id="sentTab" text="Inviati">
+                            <content>
+                                <ListView fx:id="sentListView" />
+                            </content>
+                        </Tab>
+                    </tabs>
+                </TabPane>
 
                 <VBox spacing="10.0">
                     <padding>

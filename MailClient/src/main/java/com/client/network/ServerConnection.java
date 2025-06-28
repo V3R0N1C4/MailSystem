@@ -8,6 +8,7 @@ import client.model.Email;
 import java.io.*;
 import java.net.Socket;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 
 public class ServerConnection {
@@ -20,6 +21,7 @@ public class ServerConnection {
                 .registerTypeAdapter(LocalDateTime.class, new client.model.LocalDateTimeTypeAdapter())
                 .create();
     }
+
     public boolean validateEmail(String email) {
         return sendRequest("VALIDATE_EMAIL:" + email).startsWith("OK");
     }
@@ -37,6 +39,15 @@ public class ServerConnection {
             return gson.fromJson(emailsJson, typeToken.getType());
         }
         return null;
+    }
+
+    public List<Email> getSentEmails(String emailAddress) {
+        String response = sendRequest("GET_SENT_EMAILS:" + emailAddress);
+        if (response.startsWith("OK:")) {
+            String emailsJson = response.substring(3);
+            return gson.fromJson(emailsJson, new TypeToken<List<Email>>(){}.getType());
+        }
+        return Collections.emptyList();
     }
 
     public boolean deleteEmail(String emailAddress, String emailId) {

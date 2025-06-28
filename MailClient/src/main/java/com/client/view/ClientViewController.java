@@ -1,4 +1,3 @@
-// ClientViewController.java - Controller principale del client
 package client.view;
 
 import javafx.application.Platform;
@@ -38,7 +37,11 @@ public class ClientViewController implements Initializable {
 
     // Componenti principali
     @FXML private SplitPane mainSplitPane;
-    @FXML private ListView<Email> emailListView;
+    @FXML private TabPane folderTabPane;
+    @FXML private Tab inboxTab;
+    @FXML private Tab sentTab;
+    @FXML private ListView<Email> inboxListView;
+    @FXML private ListView<Email> sentListView;
 
     // Componenti dettagli email
     @FXML private Button replyButton;
@@ -61,9 +64,33 @@ public class ClientViewController implements Initializable {
         controller = new ClientController();
         model = controller.getModel();
 
-        // Configura la ListView
-        emailListView.setItems(model.getInbox());
-        emailListView.setCellFactory(listView -> new EmailListCell());
+        // Configura le ListView
+        inboxListView.setItems(model.getInbox());
+        sentListView.setItems(model.getSentEmails());
+
+        inboxListView.setCellFactory(listView -> new EmailListCell(false));
+        sentListView.setCellFactory(listView -> new EmailListCell(true));
+
+        // Gestione selezione email
+        inboxListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                sentListView.getSelectionModel().clearSelection();
+                handleEmailSelection(newVal);
+            } else if (sentListView.getSelectionModel().getSelectedItem() == null) {
+                clearEmailDetails();
+                enableEmailActions(false);
+            }
+        });
+
+        sentListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                inboxListView.getSelectionModel().clearSelection();
+                handleEmailSelection(newVal);
+            } else if (inboxListView.getSelectionModel().getSelectedItem() == null) {
+                clearEmailDetails();
+                enableEmailActions(false);
+            }
+        });
 
         // Avvia l'aggiornamento dello stato della connessione
         startConnectionStatusUpdater();
@@ -165,14 +192,10 @@ public class ClientViewController implements Initializable {
         refreshThread.start();
     }
 
-    @FXML
-    private void handleEmailSelection(MouseEvent event) {
-        Email selected = emailListView.getSelectionModel().getSelectedItem();
-        if (selected != null) {
-            selectedEmail = selected;
-            displayEmailDetails(selected);
-            enableEmailActions(true);
-        }
+    private void handleEmailSelection(Email selected) {
+        selectedEmail = selected;
+        displayEmailDetails(selected);
+        enableEmailActions(true);
     }
 
     private void displayEmailDetails(Email email) {
@@ -184,8 +207,11 @@ public class ClientViewController implements Initializable {
     }
 
     private void enableEmailActions(boolean enable) {
-        replyButton.setDisable(!enable);
-        replyAllButton.setDisable(!enable);
+        // Disabilita azioni non disponibili per i messaggi inviati
+        boolean isSentEmail = sentListView.getSelectionModel().getSelectedItem() != null;
+
+        replyButton.setDisable(!enable || isSentEmail);
+        replyAllButton.setDisable(!enable || isSentEmail);
         forwardButton.setDisable(!enable);
         deleteButton.setDisable(!enable);
     }
@@ -221,7 +247,18 @@ public class ClientViewController implements Initializable {
 
             alert.showAndWait().ifPresent(response -> {
                 if (response == ButtonType.OK) {
-                    boolean success = controller.deleteEmail(selectedEmail);
+                    boolean isSentEmail = sentListView.getSelectionModel().getSelectedItem() != null;
+                    boolean success = false;
+
+                    if (isSentEmail) {
+                        // Eliminazione da messaggi inviati (solo locale)
+                        model.getSentEmails().remove(selectedEmail);
+                        success = true;
+                    } else {
+                        // Eliminazione da inbox (comunicazione con server)
+                        success = controller.deleteEmail(selectedEmail);
+                    }
+
                     if (success) {
                         clearEmailDetails();
                         enableEmailActions(false);
@@ -244,19 +281,7 @@ public class ClientViewController implements Initializable {
 
     private void openComposeWindow(Email replyTo, boolean isReply, boolean isReplyAll) {
         try {
-            // CORRECTED FXML PATH
-            String[] possiblePaths = {
-                    "/client/view/ComposeView.fxml"  // This is the correct path
-            };
-
-            FXMLLoader loader = null;
-            for (String path : possiblePaths) {
-                if (getClass().getResource(path) != null) {
-                    loader = new FXMLLoader(getClass().getResource(path));
-                    break;
-                }
-            }
-
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/client/view/ComposeView.fxml"));
             Scene scene = new Scene(loader.load(), 600, 500);
 
             client.view.ComposeViewController composeController = loader.getController();
@@ -276,7 +301,7 @@ public class ClientViewController implements Initializable {
 
         } catch (IOException e) {
             showAlert("Errore", "Impossibile aprire la finestra di composizione: " + e.getMessage(), Alert.AlertType.ERROR);
-            e.printStackTrace(); // This will help debug the issue
+            e.printStackTrace();
         }
     }
 
@@ -299,6 +324,12 @@ public class ClientViewController implements Initializable {
 
     // Custom ListCell for Email display
     private static class EmailListCell extends ListCell<Email> {
+        private final boolean isSentFolder;
+
+        public EmailListCell(boolean isSentFolder) {
+            this.isSentFolder = isSentFolder;
+        }
+
         @Override
         protected void updateItem(Email email, boolean empty) {
             super.updateItem(email, empty);
@@ -308,13 +339,25 @@ public class ClientViewController implements Initializable {
                 setGraphic(null);
             } else {
                 VBox content = new VBox(2);
+                Label subjectLabel = new Label();
+                Label detailsLabel = new Label();
+
+                if (isSentFolder) {
+                    // Visualizzazione per messaggi inviati
+                    subjectLabel.setText("A: " + String.join(", ", email.getRecipients()));
+                    detailsLabel.setText("Oggetto: " + email.getSubject());
+                } else {
+                    // Visualizzazione per inbox
+                    subjectLabel.setText(email.getSubject());
+                    detailsLabel.setText("Da: " + email.getSender());
+                }
+
+                subjectLabel.setStyle("-fx-font-weight: bold;");
+                detailsLabel.setStyle("-fx-font-size: 0.9em; -fx-text-fill: gray;");
+
                 content.getChildren().addAll(
-                        new Label(email.getSubject()) {{
-                            setStyle("-fx-font-weight: bold;");
-                        }},
-                        new Label("Da: " + email.getSender()) {{
-                            setStyle("-fx-font-size: 0.9em; -fx-text-fill: gray;");
-                        }},
+                        subjectLabel,
+                        detailsLabel,
                         new Label(email.getFormattedTimestamp()) {{
                             setStyle("-fx-font-size: 0.8em; -fx-text-fill: gray;");
                         }}

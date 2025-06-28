@@ -15,7 +15,11 @@ public class ClientController {
     }
 
     public boolean sendEmail(Email email) {
-        return model.sendEmail(email);
+        boolean success = model.sendEmail(email);
+        if (success) {
+            model.addToSentEmails(email);
+        }
+        return success;
     }
 
     public boolean deleteEmail(Email email) {

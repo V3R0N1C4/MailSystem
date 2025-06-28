@@ -12,7 +12,8 @@ import java.util.concurrent.TimeUnit;
 
 public class ClientModel {
     private String userEmail;
-    private ObservableList<Email> inbox;
+    private ObservableList<client.model.Email> inbox;
+    private ObservableList<client.model.Email> sentEmails;
     private ServerConnection serverConnection;
     private ScheduledExecutorService scheduler;
     private int lastEmailIndex;
@@ -20,6 +21,7 @@ public class ClientModel {
 
     public ClientModel() {
         this.inbox = FXCollections.observableArrayList();
+        this.sentEmails = FXCollections.observableArrayList();
         this.serverConnection = new ServerConnection();
         this.scheduler = Executors.newScheduledThreadPool(2);
         this.lastEmailIndex = 0;
@@ -27,11 +29,16 @@ public class ClientModel {
     }
 
     public boolean authenticateUser(String email) {
-        if (EmailValidator.isValidEmailFormat(email)) {
+        if (client.model.EmailValidator.isValidEmailFormat(email)) {
             boolean valid = serverConnection.validateEmail(email);
             if (valid) {
                 this.userEmail = email;
                 this.connected = true;
+
+                // Carica la cronologia degli inviati
+                List<client.model.Email> sent = serverConnection.getSentEmails(email);
+                sentEmails.setAll(sent);
+
                 startAutoSync();
                 return true;
             }
@@ -50,7 +57,7 @@ public class ClientModel {
     private void syncWithServer() {
         if (userEmail != null && connected) {
             try {
-                List<Email> newEmails = serverConnection.getNewEmails(userEmail, lastEmailIndex);
+                List<client.model.Email> newEmails = serverConnection.getNewEmails(userEmail, lastEmailIndex);
                 if (newEmails != null && !newEmails.isEmpty()) {
                     Platform.runLater(() -> {
                         inbox.addAll(newEmails);
@@ -79,14 +86,14 @@ public class ClientModel {
         }
     }
 
-    public boolean sendEmail(Email email) {
+    public boolean sendEmail(client.model.Email email) {
         if (connected) {
             return serverConnection.sendEmail(email);
         }
         return false;
     }
 
-    public boolean deleteEmail(Email email) {
+    public boolean deleteEmail(client.model.Email email) {
         if (connected && userEmail != null) {
             boolean deleted = serverConnection.deleteEmail(userEmail, email.getId());
             if (deleted) {
@@ -107,8 +114,13 @@ public class ClientModel {
         }
     }
 
+    public void addToSentEmails(client.model.Email email) {
+        Platform.runLater(() -> sentEmails.add(email));
+    }
+
     // Getters
     public String getUserEmail() { return userEmail; }
     public ObservableList<client.model.Email> getInbox() { return inbox; }
+    public ObservableList<client.model.Email> getSentEmails() { return sentEmails; }
     public boolean isConnected() { return connected; }
 }
