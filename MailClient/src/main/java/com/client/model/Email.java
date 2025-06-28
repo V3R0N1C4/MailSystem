@@ -1,5 +1,5 @@
 // Email.java - Classe condivisa tra client e server
-package server.model;
+package client.model;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;

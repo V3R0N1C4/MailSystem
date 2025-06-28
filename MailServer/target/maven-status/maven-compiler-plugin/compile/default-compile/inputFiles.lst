@@ -1,0 +1,9 @@
+/Users/veronicabosso/Desktop/MailSystem/MailServer/src/main/java/com/server/model/Email.java
+/Users/veronicabosso/Desktop/MailSystem/MailServer/src/main/java/com/server/network/SocketServer.java
+/Users/veronicabosso/Desktop/MailSystem/MailServer/src/main/java/com/server/storage/FileManager.java
+/Users/veronicabosso/Desktop/MailSystem/MailServer/src/main/java/com/server/view/ServerViewController.java
+/Users/veronicabosso/Desktop/MailSystem/MailServer/src/main/java/com/server/controller/ServerController.java
+/Users/veronicabosso/Desktop/MailSystem/MailServer/src/main/java/com/server/model/ServerModel.java
+/Users/veronicabosso/Desktop/MailSystem/MailServer/src/main/java/com/server/model/Mailbox.java
+/Users/veronicabosso/Desktop/MailSystem/MailServer/src/main/java/com/server/controller/ClientHandler.java
+/Users/veronicabosso/Desktop/MailSystem/MailServer/src/main/java/com/server/ServerApplication.java
