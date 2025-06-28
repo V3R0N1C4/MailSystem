@@ -29,8 +29,9 @@ public class ClientHandler implements Runnable {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
              PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
 
-            String request;
-            while ((request = in.readLine()) != null) {
+            // Legge SOLO UNA richiesta per connessione (come HTTP)
+            String request = in.readLine();
+            if (request != null) {
                 handleRequest(request, out);
             }
 
@@ -94,6 +95,7 @@ public class ClientHandler implements Runnable {
 
             model.deliverEmail(email);
             out.println("OK:Email inviata con successo");
+            model.addToLog("Email inviata da: " + email.getSender()); // Log aggiuntivo
 
         } catch (Exception e) {
             out.println("ERROR:Errore nell'invio dell'email: " + e.getMessage());
@@ -128,6 +130,7 @@ public class ClientHandler implements Runnable {
 
             boolean deleted = model.deleteEmail(emailAddress, emailId);
             out.println(deleted ? "OK:Email eliminata" : "ERROR:Email non trovata");
+            model.addToLog("Email eliminata da: " + emailAddress); // Log aggiuntivo
 
         } catch (Exception e) {
             out.println("ERROR:Errore nell'eliminazione dell'email: " + e.getMessage());

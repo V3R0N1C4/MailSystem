@@ -8,7 +8,7 @@ import java.util.List;
 
 public class Mailbox {
     private String emailAddress;
-    private ObservableList<Email> emails;
+    private ObservableList<server.model.Email> emails;
     private int lastSyncIndex;
 
     public Mailbox(String emailAddress) {
@@ -17,11 +17,11 @@ public class Mailbox {
         this.lastSyncIndex = 0;
     }
 
-    public synchronized void addEmail(Email email) {
+    public synchronized void addEmail(server.model.Email email) {
         emails.add(email);
     }
 
-    public synchronized List<Email> getNewEmails(int fromIndex) {
+    public synchronized List<server.model.Email> getNewEmails(int fromIndex) {
         if (fromIndex >= emails.size()) {
             return new ArrayList<>();
         }
@@ -34,9 +34,9 @@ public class Mailbox {
 
     // Getters e setters
     public String getEmailAddress() { return emailAddress; }
-    public ObservableList<Email> getEmails() { return emails; }
+    public ObservableList<server.model.Email> getEmails() { return emails; }
     public int getEmailCount() { return emails.size(); }
-    public void setEmails(List<Email> emailList) {
+    public void setEmails(List<server.model.Email> emailList) {
         emails.clear();
         emails.addAll(emailList);
     }

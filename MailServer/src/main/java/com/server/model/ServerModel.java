@@ -26,9 +26,9 @@ public class ServerModel {
 
     private void initializeDefaultAccounts() {
         String[] defaultAccounts = {
-                "cl16@f1.mail.com",
-                "mv33@f1.mail.com",
-                "op81@f1.mail.com"
+                "cl16@mail.com",
+                "mv33@mail.com",
+                "op81@mail.com"
         };
 
         for (String account : defaultAccounts) {
