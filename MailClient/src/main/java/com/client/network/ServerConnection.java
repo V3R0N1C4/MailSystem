@@ -2,10 +2,12 @@
 package client.network;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import client.model.Email;
 import java.io.*;
 import java.net.Socket;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class ServerConnection {
@@ -14,9 +16,10 @@ public class ServerConnection {
     private final Gson gson;
 
     public ServerConnection() {
-        this.gson = new Gson();
+        this.gson = new GsonBuilder()
+                .registerTypeAdapter(LocalDateTime.class, new client.model.LocalDateTimeTypeAdapter())
+                .create();
     }
-
     public boolean validateEmail(String email) {
         return sendRequest("VALIDATE_EMAIL:" + email).startsWith("OK");
     }

@@ -244,10 +244,22 @@ public class ClientViewController implements Initializable {
 
     private void openComposeWindow(Email replyTo, boolean isReply, boolean isReplyAll) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/client/view/ComposeView.fxml"));
+            // CORRECTED FXML PATH
+            String[] possiblePaths = {
+                    "/client/view/ComposeView.fxml"  // This is the correct path
+            };
+
+            FXMLLoader loader = null;
+            for (String path : possiblePaths) {
+                if (getClass().getResource(path) != null) {
+                    loader = new FXMLLoader(getClass().getResource(path));
+                    break;
+                }
+            }
+
             Scene scene = new Scene(loader.load(), 600, 500);
 
-            ComposeViewController composeController = loader.getController();
+            client.view.ComposeViewController composeController = loader.getController();
             composeController.setClientController(controller);
 
             if (replyTo != null) {
@@ -263,7 +275,8 @@ public class ClientViewController implements Initializable {
             composeStage.show();
 
         } catch (IOException e) {
-            showAlert("Errore", "Impossibile aprire la finestra di composizione", Alert.AlertType.ERROR);
+            showAlert("Errore", "Impossibile aprire la finestra di composizione: " + e.getMessage(), Alert.AlertType.ERROR);
+            e.printStackTrace(); // This will help debug the issue
         }
     }
 

@@ -2,11 +2,13 @@
 package server.controller;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import server.model.Email;
 import server.model.ServerModel;
 import java.io.*;
 import java.net.Socket;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public class ClientHandler implements Runnable {
@@ -17,7 +19,9 @@ public class ClientHandler implements Runnable {
     public ClientHandler(Socket clientSocket, ServerModel model) {
         this.clientSocket = clientSocket;
         this.model = model;
-        this.gson = new Gson();
+        this.gson = new GsonBuilder()
+                .registerTypeAdapter(LocalDateTime.class, new server.model.LocalDateTimeTypeAdapter())
+                .create();
     }
 
     @Override

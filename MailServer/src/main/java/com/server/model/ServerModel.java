@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ServerModel {
-    private Map<String, Mailbox> mailboxes;
+    private Map<String, server.model.Mailbox> mailboxes;
     private ObservableList<String> serverLog;
     private FileManager fileManager;
 
@@ -26,13 +26,13 @@ public class ServerModel {
 
     private void initializeDefaultAccounts() {
         String[] defaultAccounts = {
-                "alice@mailserver.com",
-                "bob@mailserver.com",
-                "charlie@mailserver.com"
+                "cl16@f1.mail.com",
+                "mv33@f1.mail.com",
+                "op81@f1.mail.com"
         };
 
         for (String account : defaultAccounts) {
-            mailboxes.put(account, new Mailbox(account));
+            mailboxes.put(account, new server.model.Mailbox(account));
         }
 
         addToLog("Server inizializzato con " + defaultAccounts.length + " account");
@@ -42,7 +42,7 @@ public class ServerModel {
         return mailboxes.containsKey(email);
     }
 
-    public synchronized void deliverEmail(Email email) {
+    public synchronized void deliverEmail(server.model.Email email) {
         for (String recipient : email.getRecipients()) {
             if (isValidEmail(recipient)) {
                 mailboxes.get(recipient).addEmail(email);
@@ -54,8 +54,8 @@ public class ServerModel {
         }
     }
 
-    public synchronized List<Email> getNewEmails(String emailAddress, int fromIndex) {
-        Mailbox mailbox = mailboxes.get(emailAddress);
+    public synchronized List<server.model.Email> getNewEmails(String emailAddress, int fromIndex) {
+        server.model.Mailbox mailbox = mailboxes.get(emailAddress);
         if (mailbox != null) {
             return mailbox.getNewEmails(fromIndex);
         }
@@ -63,7 +63,7 @@ public class ServerModel {
     }
 
     public synchronized boolean deleteEmail(String emailAddress, String emailId) {
-        Mailbox mailbox = mailboxes.get(emailAddress);
+        server.model.Mailbox mailbox = mailboxes.get(emailAddress);
         if (mailbox != null) {
             boolean deleted = mailbox.removeEmail(emailId);
             if (deleted) {
@@ -85,13 +85,13 @@ public class ServerModel {
 
     private void loadMailboxes() {
         for (String email : mailboxes.keySet()) {
-            List<Email> emails = fileManager.loadEmails(email);
+            List<server.model.Email> emails = fileManager.loadEmails(email);
             mailboxes.get(email).setEmails(emails);
         }
     }
 
     private void saveMailbox(String email) {
-        Mailbox mailbox = mailboxes.get(email);
+        server.model.Mailbox mailbox = mailboxes.get(email);
         if (mailbox != null) {
             fileManager.saveEmails(email, mailbox.getEmails());
         }
@@ -99,5 +99,5 @@ public class ServerModel {
 
     // Getters
     public ObservableList<String> getServerLog() { return serverLog; }
-    public Map<String, Mailbox> getMailboxes() { return mailboxes; }
+    public Map<String, server.model.Mailbox> getMailboxes() { return mailboxes; }
 }

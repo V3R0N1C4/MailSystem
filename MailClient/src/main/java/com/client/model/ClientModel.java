@@ -109,6 +109,6 @@ public class ClientModel {
 
     // Getters
     public String getUserEmail() { return userEmail; }
-    public ObservableList<Email> getInbox() { return inbox; }
+    public ObservableList<client.model.Email> getInbox() { return inbox; }
     public boolean isConnected() { return connected; }
 }
