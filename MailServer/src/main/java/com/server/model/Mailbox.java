@@ -5,10 +5,12 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import java.util.ArrayList;
 import java.util.List;
+import server.model.Email;
 
 public class Mailbox {
     private String emailAddress;
-    private ObservableList<server.model.Email> emails;
+    private ObservableList<Email> emails;
+    private ObservableList<Email> sentEmails = FXCollections.observableArrayList();
     private int lastSyncIndex;
 
     public Mailbox(String emailAddress) {
@@ -17,11 +19,15 @@ public class Mailbox {
         this.lastSyncIndex = 0;
     }
 
-    public synchronized void addEmail(server.model.Email email) {
+    public synchronized void addEmail(Email email) {
         emails.add(email);
     }
 
-    public synchronized List<server.model.Email> getNewEmails(int fromIndex) {
+    public synchronized void addSentEmail(Email email) {
+        sentEmails.add(email);
+    }
+
+    public synchronized List<Email> getNewEmails(int fromIndex) {
         if (fromIndex >= emails.size()) {
             return new ArrayList<>();
         }
@@ -34,10 +40,17 @@ public class Mailbox {
 
     // Getters e setters
     public String getEmailAddress() { return emailAddress; }
-    public ObservableList<server.model.Email> getEmails() { return emails; }
+    public ObservableList<Email> getEmails() { return emails; }
+    public ObservableList<Email> getSentEmails() { return sentEmails; }
     public int getEmailCount() { return emails.size(); }
-    public void setEmails(List<server.model.Email> emailList) {
+
+    public void setEmails(List<Email> emailList) {
         emails.clear();
         emails.addAll(emailList);
+    }
+
+    public void setSentEmails(List<Email> sentEmailList) {
+        sentEmails.clear();
+        sentEmails.addAll(sentEmailList);
     }
 }

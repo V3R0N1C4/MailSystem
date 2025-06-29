@@ -1,4 +1,3 @@
-// ClientHandler.java - Gestione client
 package server.controller;
 
 import com.google.gson.Gson;
@@ -63,6 +62,9 @@ public class ClientHandler implements Runnable {
                 case "GET_EMAILS":
                     handleGetEmails(data, out);
                     break;
+                case "GET_SENT_EMAILS":
+                    handleGetSentEmails(data, out);
+                    break;
                 case "DELETE_EMAIL":
                     handleDeleteEmail(data, out);
                     break;
@@ -119,6 +121,22 @@ public class ClientHandler implements Runnable {
 
         } catch (Exception e) {
             out.println("ERROR:Errore nel recuperare le email: " + e.getMessage());
+        }
+    }
+
+    private void handleGetSentEmails(String emailAddress, PrintWriter out) {
+        try {
+            if (!model.isValidEmail(emailAddress)) {
+                out.println("ERROR:Email non valida");
+                return;
+            }
+
+            List<Email> sentEmails = model.getSentEmails(emailAddress);
+            String emailsJson = gson.toJson(sentEmails);
+            out.println("OK:" + emailsJson);
+
+        } catch (Exception e) {
+            out.println("ERROR:Errore nel recuperare le email inviate: " + e.getMessage());
         }
     }
 

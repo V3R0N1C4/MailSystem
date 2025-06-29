@@ -13,6 +13,27 @@ public class FileManager {
     private static final String DATA_DIR = "maildata";
     private final ConcurrentHashMap<String, Lock> fileLocks;
 
+    // Classe interna per memorizzare entrambe le liste
+    public static class MailboxData implements Serializable {
+        private final List<Email> receivedEmails;
+        private final List<Email> sentEmails;
+
+        public MailboxData(List<Email> receivedEmails, List<Email> sentEmails) {
+            this.receivedEmails = receivedEmails;
+            this.sentEmails = sentEmails;
+        }
+
+        // Aggiungi getter
+        public List<Email> getReceivedEmails() {
+            return receivedEmails;
+        }
+
+        // Aggiungi getter
+        public List<Email> getSentEmails() {
+            return sentEmails;
+        }
+    }
+
     public FileManager() {
         this.fileLocks = new ConcurrentHashMap<>();
         createDataDirectory();
@@ -25,16 +46,17 @@ public class FileManager {
         }
     }
 
-    public void saveEmails(String emailAddress, List<Email> emails) {
+    public void saveMailbox(String emailAddress, List<Email> receivedEmails, List<Email> sentEmails) {
         Lock lock = fileLocks.computeIfAbsent(emailAddress, k -> new ReentrantLock());
         lock.lock();
         try {
             String fileName = DATA_DIR + File.separator + emailAddress.replace("@", "_") + ".dat";
 
             try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(fileName))) {
-                oos.writeObject(new ArrayList<>(emails));
+                MailboxData data = new MailboxData(new ArrayList<>(receivedEmails), new ArrayList<>(sentEmails));
+                oos.writeObject(data);
             } catch (IOException e) {
-                System.err.println("Errore nel salvare le email per " + emailAddress + ": " + e.getMessage());
+                System.err.println("Errore nel salvare la mailbox per " + emailAddress + ": " + e.getMessage());
             }
         } finally {
             lock.unlock();
@@ -42,7 +64,7 @@ public class FileManager {
     }
 
     @SuppressWarnings("unchecked")
-    public List<Email> loadEmails(String emailAddress) {
+    public MailboxData loadMailbox(String emailAddress) {
         Lock lock = fileLocks.computeIfAbsent(emailAddress, k -> new ReentrantLock());
         lock.lock();
         try {
@@ -50,14 +72,24 @@ public class FileManager {
             File file = new File(fileName);
 
             if (!file.exists()) {
-                return new ArrayList<>();
+                return new MailboxData(new ArrayList<>(), new ArrayList<>());
             }
 
             try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(fileName))) {
-                return (List<Email>) ois.readObject();
+                Object obj = ois.readObject();
+
+                // Gestione compatibilità con vecchio formato
+                if (obj instanceof ArrayList) {
+                    List<Email> oldList = (ArrayList<Email>) obj;
+                    return new MailboxData(oldList, new ArrayList<>());
+                } else if (obj instanceof MailboxData) {
+                    return (MailboxData) obj;
+                } else {
+                    throw new IOException("Formato file non supportato");
+                }
             } catch (IOException | ClassNotFoundException e) {
-                System.err.println("Errore nel caricare le email per " + emailAddress + ": " + e.getMessage());
-                return new ArrayList<>();
+                System.err.println("Errore nel caricare la mailbox per " + emailAddress + ": " + e.getMessage());
+                return new MailboxData(new ArrayList<>(), new ArrayList<>());
             }
         } finally {
             lock.unlock();

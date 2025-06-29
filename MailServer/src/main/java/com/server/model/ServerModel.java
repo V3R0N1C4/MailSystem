@@ -5,12 +5,15 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import server.storage.FileManager;
+import java.util.ArrayList;
+import server.model.Mailbox;
+import server.model.Email;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class ServerModel {
-    private Map<String, server.model.Mailbox> mailboxes;
+    private Map<String, Mailbox> mailboxes;
     private ObservableList<String> serverLog;
     private FileManager fileManager;
 
@@ -32,7 +35,7 @@ public class ServerModel {
         };
 
         for (String account : defaultAccounts) {
-            mailboxes.put(account, new server.model.Mailbox(account));
+            mailboxes.put(account, new Mailbox(account));
         }
 
         addToLog("Server inizializzato con " + defaultAccounts.length + " account");
@@ -42,7 +45,14 @@ public class ServerModel {
         return mailboxes.containsKey(email);
     }
 
-    public synchronized void deliverEmail(server.model.Email email) {
+    public synchronized void deliverEmail(Email email) {
+        // Salva nella casella di posta inviata del mittente
+        if (isValidEmail(email.getSender())) {
+            mailboxes.get(email.getSender()).addSentEmail(email);
+            saveMailbox(email.getSender());
+        }
+
+        // Salva nella casella di posta in arrivo dei destinatari
         for (String recipient : email.getRecipients()) {
             if (isValidEmail(recipient)) {
                 mailboxes.get(recipient).addEmail(email);
@@ -58,6 +68,14 @@ public class ServerModel {
         server.model.Mailbox mailbox = mailboxes.get(emailAddress);
         if (mailbox != null) {
             return mailbox.getNewEmails(fromIndex);
+        }
+        return null;
+    }
+
+    public synchronized List<Email> getSentEmails(String emailAddress) {
+        Mailbox mailbox = mailboxes.get(emailAddress);
+        if (mailbox != null) {
+            return new ArrayList<>(mailbox.getSentEmails());
         }
         return null;
     }
@@ -85,19 +103,24 @@ public class ServerModel {
 
     private void loadMailboxes() {
         for (String email : mailboxes.keySet()) {
-            List<server.model.Email> emails = fileManager.loadEmails(email);
-            mailboxes.get(email).setEmails(emails);
+            FileManager.MailboxData data = fileManager.loadMailbox(email);
+            mailboxes.get(email).setEmails(data.getReceivedEmails());
+            mailboxes.get(email).setSentEmails(data.getSentEmails());
         }
     }
 
     private void saveMailbox(String email) {
-        server.model.Mailbox mailbox = mailboxes.get(email);
+        Mailbox mailbox = mailboxes.get(email);
         if (mailbox != null) {
-            fileManager.saveEmails(email, mailbox.getEmails());
+            fileManager.saveMailbox(
+                    email,
+                    mailbox.getEmails(),
+                    mailbox.getSentEmails()
+            );
         }
     }
 
     // Getters
     public ObservableList<String> getServerLog() { return serverLog; }
-    public Map<String, server.model.Mailbox> getMailboxes() { return mailboxes; }
+    public Map<String, Mailbox> getMailboxes() { return mailboxes; }
 }
