@@ -25,6 +25,7 @@
                         <Button fx:id="refreshButton" text="Aggiorna" onAction="#handleRefresh" />
                         <Region HBox.hgrow="ALWAYS" />
                         <Label fx:id="connectionStatus" text="Non connesso" />
+                        <Button fx:id="logoutButton" text="Logout" onAction="#handleLogout" />
                     </children>
                 </HBox>
             </children>

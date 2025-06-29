@@ -4,7 +4,7 @@ import common.model.Email;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import client.network.ServerConnection;;
+import client.network.ServerConnection;
 
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -13,15 +13,16 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Modello principale del client per la gestione delle email.
+ * Gestisce autenticazione, sincronizzazione, invio, eliminazione e stato della connessione.
  */
 public class ClientModel {
-    private String userEmail;                               // Email dell'utente autenticato
-    private ObservableList<Email> inbox;       // Lista delle email ricevute
-    private ObservableList<Email> sentEmails;  // Lista delle email inviate
-    private ServerConnection serverConnection;              // Gestione della connessione al server
-    private ScheduledExecutorService scheduler;             // Scheduler per attività periodiche
-    private int lastEmailIndex;                             // Indice dell'ultima email ricevuta
-    private boolean connected;                              // Stato della connessione
+    private String userEmail;                   // Email dell'utente autenticato
+    private ObservableList<Email> inbox;        // Lista delle email ricevute (inbox)
+    private ObservableList<Email> sentEmails;   // Lista delle email inviate
+    private ServerConnection serverConnection;  // Gestione della connessione al server
+    private ScheduledExecutorService scheduler; // Scheduler per attività periodiche (sync e controllo connessione)
+    private int lastEmailIndex;                 // Indice dell'ultima email ricevuta (per sincronizzazione incrementale)
+    private boolean connected;                  // Stato della connessione al server
 
     /**
      * Costruttore: inizializza le liste, la connessione e lo scheduler.
@@ -37,6 +38,7 @@ public class ClientModel {
 
     /**
      * Autentica l'utente tramite email.
+     * Se l'autenticazione va a buon fine, carica inbox e sent, avvia la sincronizzazione automatica.
      * @param email email da autenticare
      * @return true se autenticato, false altrimenti
      */
@@ -47,14 +49,17 @@ public class ClientModel {
                 this.userEmail = email;
                 this.connected = true;
 
-                // Carica sia inbox che messaggi inviati
+                // Recupera email ricevute e inviate dal server
                 List<Email> received = serverConnection.getNewEmails(email, 0);
                 List<Email> sent = serverConnection.getSentEmails(email);
 
-                inbox.setAll(received);
-                sentEmails.setAll(sent);
-                lastEmailIndex = inbox.size();
+                // Aggiorna le ObservableList sul thread FX
+                Platform.runLater(() -> {
+                    inbox.setAll(received);
+                    sentEmails.setAll(sent);
+                });
 
+                lastEmailIndex = received.size();
                 startAutoSync();
                 return true;
             }
@@ -64,6 +69,7 @@ public class ClientModel {
 
     /**
      * Avvia la sincronizzazione automatica e il controllo connessione.
+     * Sincronizza la casella di posta ogni 5 secondi e controlla la connessione ogni 10 secondi.
      */
     private void startAutoSync() {
         // Sincronizzazione automatica ogni 5 secondi
@@ -75,6 +81,7 @@ public class ClientModel {
 
     /**
      * Sincronizza la casella di posta con il server.
+     * Recupera nuove email e aggiorna la inbox.
      */
     private void syncWithServer() {
         if (userEmail != null && connected) {
@@ -96,6 +103,7 @@ public class ClientModel {
 
     /**
      * Controlla periodicamente lo stato della connessione.
+     * Se la connessione viene ristabilita, sincronizza la casella di posta.
      */
     private void checkConnection() {
         if (userEmail != null) {
@@ -142,6 +150,7 @@ public class ClientModel {
 
     /**
      * Arresta lo scheduler e chiude la connessione al server.
+     * Da chiamare in fase di chiusura dell'applicazione.
      */
     public void shutdown() {
         if (scheduler != null && !scheduler.isShutdown()) {
@@ -160,9 +169,29 @@ public class ClientModel {
         Platform.runLater(() -> sentEmails.add(email));
     }
 
-    // Getter
+    // Getter per i campi principali
+
+    /**
+     * Restituisce l'email dell'utente autenticato.
+     * @return email utente
+     */
     public String getUserEmail() { return userEmail; }
+
+    /**
+     * Restituisce la lista delle email ricevute (inbox).
+     * @return inbox
+     */
     public ObservableList<Email> getInbox() { return inbox; }
+
+    /**
+     * Restituisce la lista delle email inviate.
+     * @return sentEmails
+     */
     public ObservableList<Email> getSentEmails() { return sentEmails; }
+
+    /**
+     * Restituisce lo stato della connessione.
+     * @return true se connesso, false altrimenti
+     */
     public boolean isConnected() { return connected; }
 }
