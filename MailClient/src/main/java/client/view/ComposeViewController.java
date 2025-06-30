@@ -15,32 +15,48 @@ import java.util.List;
 import java.util.ResourceBundle;
 import java.util.stream.Collectors;
 
+/**
+ * Controller per la vista di composizione email.
+ */
 public class ComposeViewController implements Initializable {
-    @FXML private TextField toField;
-    @FXML private TextField subjectField;
-    @FXML private TextArea bodyTextArea;
-    @FXML private Button sendButton;
-    @FXML private Button cancelButton;
+    @FXML private TextField toField;        // Campo destinatari
+    @FXML private TextField subjectField;   // Campo oggetto
+    @FXML private TextArea bodyTextArea;    // Area di testo per il corpo dell'email
+    @FXML private Button sendButton;        // Pulsante invio
+    @FXML private Button cancelButton;      // Pulsante annulla
 
-    private ClientController clientController;
-    private Email originalEmail;
-    private boolean isReply;
-    private boolean isReplyAll;
+    private ClientController clientController;  // Controller principale dell'applicazione
+    private Email originalEmail;                // Email originale (per rispondi/inoltra)
+    private boolean isReply;                    // Flag per modalità risposta
+    private boolean isReplyAll;                 // Flag per modalità risposta a tutti
 
+    /**
+     * Inizializza la vista e imposta la validazione dei campi.
+     */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        // Set up validation
+        // Listener per validare i campi in tempo reale
         toField.textProperty().addListener((obs, oldVal, newVal) -> validateForm());
         subjectField.textProperty().addListener((obs, oldVal, newVal) -> validateForm());
         bodyTextArea.textProperty().addListener((obs, oldVal, newVal) -> validateForm());
 
-        validateForm(); // Initial validation
+        validateForm(); // Validazione iniziale
     }
 
+    /**
+     * Imposta il controller principale.
+     * @param controller il controller principale
+     */
     public void setClientController(ClientController controller) {
         this.clientController = controller;
     }
 
+    /**
+     * Configura la vista per rispondere o inoltrare una email.
+     * @param originalEmail l'email originale
+     * @param isReply true se risposta, false se inoltro
+     * @param isReplyAll true se rispondi a tutti
+     */
     public void setupReplyOrForward(Email originalEmail, boolean isReply, boolean isReplyAll) {
         this.originalEmail = originalEmail;
         this.isReply = isReply;
@@ -53,10 +69,14 @@ public class ComposeViewController implements Initializable {
         }
     }
 
+    /**
+     * Prepara la vista per la risposta (o risposta a tutti).
+     * @param replyAll true se rispondi a tutti
+     */
     private void setupReply(boolean replyAll) {
-        // Set recipients
+        // Imposta i destinatari
         if (replyAll) {
-            // Reply to sender + all other recipients except current user
+            // Rispondi a mittente + altri destinatari escluso l'utente corrente
             String currentUser = clientController.getModel().getUserEmail();
             List<String> allRecipients = originalEmail.getRecipients().stream()
                     .filter(email -> !email.equals(currentUser))
@@ -68,18 +88,18 @@ public class ComposeViewController implements Initializable {
 
             toField.setText(String.join(", ", allRecipients));
         } else {
-            // Reply only to sender
+            // Rispondi solo al mittente
             toField.setText(originalEmail.getSender());
         }
 
-        // Set subject with "Re:" prefix
+        // Imposta oggetto con prefisso "Re:"
         String subject = originalEmail.getSubject();
         if (!subject.toLowerCase().startsWith("re:")) {
             subject = "Re: " + subject;
         }
         subjectField.setText(subject);
 
-        // Set body with quoted original message
+        // Imposta corpo con messaggio originale quotato
         String quotedBody = "\n\n--- Messaggio originale ---\n" +
                 "Da: " + originalEmail.getSender() + "\n" +
                 "Data: " + originalEmail.getFormattedTimestamp() + "\n" +
@@ -88,21 +108,24 @@ public class ComposeViewController implements Initializable {
                 originalEmail.getBody();
 
         bodyTextArea.setText(quotedBody);
-        bodyTextArea.positionCaret(0); // Move cursor to beginning
+        bodyTextArea.positionCaret(0); // Posiziona il cursore all'inizio
     }
 
+    /**
+     * Prepara la vista per l'inoltro.
+     */
     private void setupForward() {
-        // Leave "To" field empty for user to fill
+        // Campo destinatari vuoto
         toField.setText("");
 
-        // Set subject with "Fwd:" prefix
+        // Imposta oggetto con prefisso "Fwd:"
         String subject = originalEmail.getSubject();
         if (!subject.toLowerCase().startsWith("fwd:") && !subject.toLowerCase().startsWith("fw:")) {
             subject = "Fwd: " + subject;
         }
         subjectField.setText(subject);
 
-        // Set body with forwarded message
+        // Imposta corpo con messaggio inoltrato
         String forwardedBody = "\n\n--- Messaggio inoltrato ---\n" +
                 "Da: " + originalEmail.getSender() + "\n" +
                 "Data: " + originalEmail.getFormattedTimestamp() + "\n" +
@@ -111,12 +134,15 @@ public class ComposeViewController implements Initializable {
                 originalEmail.getBody();
 
         bodyTextArea.setText(forwardedBody);
-        bodyTextArea.positionCaret(0); // Move cursor to beginning
+        bodyTextArea.positionCaret(0); // Posiziona il cursore all'inizio
 
-        // Focus on "To" field
+        // Focus sul campo destinatari
         toField.requestFocus();
     }
 
+    /**
+     * Valida i campi del form e abilita/disabilita il pulsante invio.
+     */
     private void validateForm() {
         boolean valid = !toField.getText().trim().isEmpty() &&
                 !subjectField.getText().trim().isEmpty() &&
@@ -125,13 +151,16 @@ public class ComposeViewController implements Initializable {
         sendButton.setDisable(!valid);
     }
 
+    /**
+     * Gestisce l'evento di invio email.
+     */
     @FXML
     private void handleSend() {
         String toText = toField.getText().trim();
         String subject = subjectField.getText().trim();
         String body = bodyTextArea.getText().trim();
 
-        // Parse recipients
+        // Parsing destinatari
         List<String> recipients = Arrays.stream(toText.split(","))
                 .map(String::trim)
                 .filter(email -> !email.isEmpty())
@@ -145,12 +174,13 @@ public class ComposeViewController implements Initializable {
             }
         }
 
-        // Create and send email
+        // Crea e invia l'email
         Email email = new Email(clientController.getModel().getUserEmail(), recipients, subject, body);
 
         sendButton.setDisable(true);
         sendButton.setText("Invio...");
 
+        // Invio email in un thread separato
         Thread sendThread = new Thread(() -> {
             boolean success = clientController.sendEmail(email);
 
@@ -169,16 +199,28 @@ public class ComposeViewController implements Initializable {
         sendThread.start();
     }
 
+    /**
+     * Gestisce l'evento di annullamento.
+     */
     @FXML
     private void handleCancel() {
         closeWindow();
     }
 
+    /**
+     * Chiude la finestra corrente.
+     */
     private void closeWindow() {
         Stage stage = (Stage) cancelButton.getScene().getWindow();
         stage.close();
     }
 
+    /**
+     * Mostra un messaggio di alert.
+     * @param title titolo della finestra
+     * @param message messaggio da mostrare
+     * @param type tipo di alert
+     */
     private void showAlert(String title, String message, Alert.AlertType type) {
         Alert alert = new Alert(type);
         alert.setTitle(title);

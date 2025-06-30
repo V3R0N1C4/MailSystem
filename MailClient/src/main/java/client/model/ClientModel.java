@@ -177,7 +177,6 @@ public class ClientModel {
     }
 
     // Getter per i campi principali
-
     /**
      * Restituisce l'email dell'utente autenticato.
      * @return email utente
