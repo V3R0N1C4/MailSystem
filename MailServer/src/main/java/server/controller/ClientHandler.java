@@ -13,11 +13,20 @@ import java.net.Socket;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Gestisce la comunicazione con un singolo client.
+ * Ogni istanza viene eseguita in un thread separato.
+ */
 public class ClientHandler implements Runnable {
-    private final Socket clientSocket;
-    private final ServerModel model;
-    private final Gson gson;
+    private final Socket clientSocket;      // Socket associato al client
+    private final ServerModel model;        // Modello del server per accedere ai dati e alle operazioni
+    private final Gson gson;                // Oggetto Gson per la serializzazione/deserializzazione JSON
 
+    /**
+     * Costruttore della classe ClientHandler.
+     * @param clientSocket socket del client connesso
+     * @param model modello del server
+     */
     public ClientHandler(Socket clientSocket, ServerModel model) {
         this.clientSocket = clientSocket;
         this.model = model;
@@ -26,6 +35,10 @@ public class ClientHandler implements Runnable {
                 .create();
     }
 
+    /**
+     * Metodo principale eseguito dal thread.
+     * Gestisce una singola richiesta per connessione.
+     */
     @Override
     public void run() {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -49,6 +62,11 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Gestisce la richiesta ricevuta dal client, smistandola in base al comando.
+     * @param request richiesta ricevuta
+     * @param out stream di output verso il client
+     */
     private void handleRequest(String request, PrintWriter out) {
         try {
             String[] parts = request.split(":", 2);
@@ -80,12 +98,22 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Gestisce la validazione di un indirizzo email.
+     * @param email indirizzo email da validare
+     * @param out stream di output verso il client
+     */
     private void handleValidateEmail(String email, PrintWriter out) {
         boolean valid = model.isValidEmail(email);
         out.println(valid ? "OK:Email valida" : "ERROR:Email non esistente");
         model.addToLog("Validazione email " + email + ": " + (valid ? "valida" : "non valida"));
     }
 
+    /**
+     * Gestisce l'invio di una email.
+     * @param emailJson email in formato JSON
+     * @param out stream di output verso il client
+     */
     private void handleSendEmail(String emailJson, PrintWriter out) {
         try {
             Email email = gson.fromJson(emailJson, Email.class);
@@ -114,6 +142,11 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Gestisce la richiesta di recupero delle nuove email per un utente.
+     * @param data dati della richiesta (email, indice di partenza)
+     * @param out stream di output verso il client
+     */
     private void handleGetEmails(String data, PrintWriter out) {
         try {
             String[] parts = data.split(",");
@@ -134,6 +167,11 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Gestisce la richiesta di recupero delle email inviate da un utente.
+     * @param emailAddress indirizzo email dell'utente
+     * @param out stream di output verso il client
+     */
     private void handleGetSentEmails(String emailAddress, PrintWriter out) {
         try {
             if (!model.isValidEmail(emailAddress)) {
@@ -150,6 +188,11 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Gestisce la richiesta di eliminazione di una email.
+     * @param data dati della richiesta (email, id email, flag inviata/ricevuta)
+     * @param out stream di output verso il client
+     */
     private void handleDeleteEmail(String data, PrintWriter out) {
         try {
             String[] parts = data.split(",");
