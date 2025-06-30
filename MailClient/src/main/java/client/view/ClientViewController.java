@@ -13,7 +13,7 @@ import javafx.stage.Stage;
 
 import client.controller.ClientController;
 import client.model.ClientModel;
-import client.model.EmailValidator;
+import common.model.EmailValidator;
 import common.model.Email;
 
 import java.io.IOException;
@@ -271,16 +271,7 @@ public class ClientViewController implements Initializable {
             alert.showAndWait().ifPresent(response -> {
                 if (response == ButtonType.OK) {
                     boolean isSentEmail = sentListView.getSelectionModel().getSelectedItem() != null;
-                    boolean success = false;
-
-                    if (isSentEmail) {
-                        // Eliminazione da messaggi inviati (solo locale)
-                        model.getSentEmails().remove(selectedEmail);
-                        success = true;
-                    } else {
-                        // Eliminazione da inbox (comunicazione con server)
-                        success = controller.deleteEmail(selectedEmail);
-                    }
+                    boolean success = controller.deleteEmail(selectedEmail, isSentEmail);
 
                     if (success) {
                         clearEmailDetails();

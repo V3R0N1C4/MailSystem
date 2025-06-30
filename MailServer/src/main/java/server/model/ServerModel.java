@@ -81,13 +81,21 @@ public class ServerModel {
         return null;
     }
 
-    public synchronized boolean deleteEmail(String emailAddress, String emailId) {
-        server.model.Mailbox mailbox = mailboxes.get(emailAddress);
+    public synchronized boolean deleteEmail(String emailAddress, String emailId, boolean isSent) {
+        Mailbox mailbox = mailboxes.get(emailAddress);
         if (mailbox != null) {
-            boolean deleted = mailbox.removeEmail(emailId);
+            boolean deleted;
+            if (isSent) {
+                // Elimina da sentEmails
+                deleted = mailbox.getSentEmails().removeIf(email -> email.getId().equals(emailId));
+            } else {
+                // Elimina da receivedEmails
+                deleted = mailbox.removeEmail(emailId);
+            }
+
             if (deleted) {
                 saveMailbox(emailAddress);
-                addToLog("Email eliminata per: " + emailAddress);
+                addToLog("Email eliminata per: " + emailAddress + " (tipo: " + (isSent ? "INVIATA" : "RICEVUTA") + ")");
             }
             return deleted;
         }

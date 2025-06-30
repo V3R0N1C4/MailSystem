@@ -1,5 +1,4 @@
-// EmailValidator.java - Validazione email
-package client.model;
+package common.model;
 
 import java.util.regex.Pattern;
 
@@ -11,6 +10,7 @@ public class EmailValidator {
     private static final Pattern pattern = Pattern.compile(EMAIL_PATTERN);
 
     public static boolean isValidEmailFormat(String email) {
-        return email != null && pattern.matcher(email).matches();
+        if (email == null) return false;
+        return pattern.matcher(email).matches();
     }
 }

@@ -6,6 +6,7 @@ import com.google.gson.GsonBuilder;
 import common.model.LocalDateTimeTypeAdapter;
 import common.model.Email;
 import server.model.ServerModel;
+import common.model.EmailValidator;
 
 import java.io.*;
 import java.net.Socket;
@@ -89,17 +90,24 @@ public class ClientHandler implements Runnable {
         try {
             Email email = gson.fromJson(emailJson, Email.class);
 
-            // Verifica destinatari
+            // Controlla ogni destinatario
             for (String recipient : email.getRecipients()) {
+                // Prima verifica regex
+                if (!EmailValidator.isValidEmailFormat(recipient)) {
+                    out.println("ERROR:Formato email non valido: " + recipient);
+                    return;
+                }
+
+                // Poi verifica esistenza sul server
                 if (!model.isValidEmail(recipient)) {
-                    out.println("ERROR:Destinatario non valido: " + recipient);
+                    out.println("ERROR:Destinatario non registrato: " + recipient);
                     return;
                 }
             }
 
             model.deliverEmail(email);
             out.println("OK:Email inviata con successo");
-            model.addToLog("Email inviata da: " + email.getSender()); // Log aggiuntivo
+            model.addToLog("Email inviata da: " + email.getSender());
 
         } catch (Exception e) {
             out.println("ERROR:Errore nell'invio dell'email: " + e.getMessage());
@@ -147,10 +155,11 @@ public class ClientHandler implements Runnable {
             String[] parts = data.split(",");
             String emailAddress = parts[0];
             String emailId = parts[1];
+            boolean isSent = Boolean.parseBoolean(parts[2]);
 
-            boolean deleted = model.deleteEmail(emailAddress, emailId);
+            boolean deleted = model.deleteEmail(emailAddress, emailId, isSent);
             out.println(deleted ? "OK:Email eliminata" : "ERROR:Email non trovata");
-            model.addToLog("Email eliminata da: " + emailAddress); // Log aggiuntivo
+            model.addToLog("Email eliminata da: " + emailAddress);
 
         } catch (Exception e) {
             out.println("ERROR:Errore nell'eliminazione dell'email: " + e.getMessage());

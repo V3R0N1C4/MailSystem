@@ -40,12 +40,13 @@ public class ClientController {
     }
 
     /**
-     * Elimina una email.
+     * Elimina una email specificando se è un'email inviata.
      * @param email l'oggetto Email da eliminare
+     * @param isSent true se è un'email inviata, false se è in ricevuta
      * @return true se l'eliminazione ha successo, false altrimenti
      */
-    public boolean deleteEmail(Email email) {
-        return model.deleteEmail(email);
+    public boolean deleteEmail(Email email, boolean isSent) {
+        return model.deleteEmail(email, isSent);
     }
 
     /**

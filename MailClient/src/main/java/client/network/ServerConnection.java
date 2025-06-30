@@ -52,8 +52,8 @@ public class ServerConnection {
         return Collections.emptyList();
     }
 
-    public boolean deleteEmail(String emailAddress, String emailId) {
-        return sendRequest("DELETE_EMAIL:" + emailAddress + "," + emailId).startsWith("OK");
+    public boolean deleteEmail(String emailAddress, String emailId, boolean isSent) {
+        return sendRequest("DELETE_EMAIL:" + emailAddress + "," + emailId + "," + isSent).startsWith("OK");
     }
 
     public boolean testConnection() {

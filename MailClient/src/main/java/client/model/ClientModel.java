@@ -1,6 +1,7 @@
 package client.model;
 
 import common.model.Email;
+import common.model.EmailValidator;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -136,12 +137,18 @@ public class ClientModel {
      * @param email email da eliminare
      * @return true se eliminata, false altrimenti
      */
-    public boolean deleteEmail(Email email) {
+    public boolean deleteEmail(Email email, boolean isSent) {
         if (connected && userEmail != null) {
-            boolean deleted = serverConnection.deleteEmail(userEmail, email.getId());
+            boolean deleted = serverConnection.deleteEmail(userEmail, email.getId(), isSent);
             if (deleted) {
-                Platform.runLater(() -> inbox.remove(email));
-                lastEmailIndex = inbox.size();
+                Platform.runLater(() -> {
+                    if (isSent) {
+                        sentEmails.remove(email);
+                    } else {
+                        inbox.remove(email);
+                        lastEmailIndex = inbox.size();
+                    }
+                });
             }
             return deleted;
         }

@@ -6,7 +6,7 @@ import javafx.scene.control.*;
 import javafx.stage.Stage;
 
 import client.controller.ClientController;
-import client.model.EmailValidator;
+import common.model.EmailValidator;
 import common.model.Email;
 
 import java.net.URL;
@@ -137,7 +137,7 @@ public class ComposeViewController implements Initializable {
                 .filter(email -> !email.isEmpty())
                 .collect(Collectors.toList());
 
-        // Validate email formats
+        // Validazione formato email per ogni destinatario
         for (String recipient : recipients) {
             if (!EmailValidator.isValidEmailFormat(recipient)) {
                 showAlert("Errore", "Indirizzo email non valido: " + recipient, Alert.AlertType.ERROR);
