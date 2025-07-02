@@ -62,25 +62,46 @@ public class ServerModel {
     }
 
     /**
-     * Consegnare un'email: la salva sia nella posta inviata del mittente che nella posta in arrivo dei destinatari.
+     * Consegna un'email: verifica la validità del mittente e dei destinatari,
+     * aggiorna la lista dei destinatari validi, salva l'email nella posta inviata
+     * del mittente e nella posta in arrivo dei destinatari validi, e aggiorna il log.
+     * Se il mittente o tutti i destinatari non sono validi, registra un errore nel log.
+     *
      * @param email oggetto Email da consegnare
      */
     public synchronized void deliverEmail(Email email) {
-        // Salva nella casella di posta inviata del mittente
-        if (isValidEmail(email.getSender())) {
-            mailboxes.get(email.getSender()).addSentEmail(email);
-            saveMailbox(email.getSender());
+        // Verifica esistenza mittente
+        if (!isValidEmail(email.getSender())) {
+            addToLog("ERRORE: Mittente non valido: " + email.getSender());
+            return;
         }
 
-        // Salva nella casella di posta in arrivo dei destinatari
+        List<String> validRecipients = new ArrayList<>();
         for (String recipient : email.getRecipients()) {
             if (isValidEmail(recipient)) {
-                mailboxes.get(recipient).addEmail(email);
-                saveMailbox(recipient);
-                addToLog("Email consegnata a: " + recipient + " da: " + email.getSender());
+                validRecipients.add(recipient);
             } else {
                 addToLog("ERRORE: Destinatario non valido: " + recipient);
             }
+        }
+
+        if (validRecipients.isEmpty()) {
+            addToLog("ERRORE: Nessun destinatario valido per l'email da: " + email.getSender());
+            return;
+        }
+
+        // Aggiorna i destinatari con solo quelli validi
+        email.setRecipients(validRecipients);
+
+        // Salva nella casella del mittente (inviati)
+        mailboxes.get(email.getSender()).addSentEmail(email);
+        saveMailbox(email.getSender());
+
+        // Salva nella casella dei destinatari (ricevuti)
+        for (String recipient : validRecipients) {
+            mailboxes.get(recipient).addEmail(email);
+            saveMailbox(recipient);
+            addToLog("Email consegnata a: " + recipient + " da: " + email.getSender());
         }
     }
 

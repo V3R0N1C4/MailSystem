@@ -122,14 +122,23 @@ public class ClientModel {
 
     /**
      * Invia una email tramite il server.
-     * @param email email da inviare
-     * @return true se inviata, false altrimenti
+     * Se la connessione è attiva, invia l'oggetto Email tramite il metodo sendEmail del ServerConnection.
+     * Restituisce null se l'invio ha successo (risposta che inizia con "OK"), altrimenti restituisce il messaggio di errore senza il prefisso "ERROR:".
+     * Se non connesso, restituisce un messaggio di errore specifico.
+     *
+     * @param email l'oggetto Email da inviare
+     * @return null se inviata con successo, altrimenti una stringa con il messaggio di errore
      */
-    public boolean sendEmail(Email email) {
+    public String sendEmail(Email email) {
         if (connected) {
-            return serverConnection.sendEmail(email);
+            String response = serverConnection.sendEmail(email);
+            if (response.startsWith("OK")) {
+                return null; // Successo
+            } else {
+                return response.replaceFirst("ERROR:", ""); // Rimuove il prefisso ERROR
+            }
         }
-        return false;
+        return "Non connesso al server";
     }
 
     /**

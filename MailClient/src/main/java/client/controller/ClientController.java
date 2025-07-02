@@ -27,16 +27,17 @@ public class ClientController {
     }
 
     /**
-     * Invia una email e la aggiunge alla lista delle email inviate se l'invio ha successo.
+     * Invia una email tramite il modello.
+     * Se l'invio ha successo (ovvero il risultato è null), aggiunge l'email alla lista delle email inviate.
      * @param email l'oggetto Email da inviare
-     * @return true se l'invio ha successo, false altrimenti
+     * @return null se l'invio ha successo, altrimenti una stringa con il messaggio di errore
      */
-    public boolean sendEmail(Email email) {
-        boolean success = model.sendEmail(email);
-        if (success) {
+    public String sendEmail(Email email) {
+        String result = model.sendEmail(email);
+        if (result == null) {
             model.addToSentEmails(email);
         }
-        return success;
+        return result;
     }
 
     /**

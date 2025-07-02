@@ -41,13 +41,13 @@ public class ServerConnection {
     }
 
     /**
-     * Invia una email al server.
+     * Invia una email al server serializzando l'oggetto Email in formato JSON.
      * @param email oggetto Email da inviare
-     * @return true se l'invio ha avuto successo, false altrimenti
+     * @return risposta del server come stringa (ad esempio "OK" o messaggio di errore)
      */
-    public boolean sendEmail(Email email) {
+    public String sendEmail(Email email) {
         String emailJson = gson.toJson(email);
-        return sendRequest("SEND_EMAIL:" + emailJson).startsWith("OK");
+        return sendRequest("SEND_EMAIL:" + emailJson);
     }
 
     /**

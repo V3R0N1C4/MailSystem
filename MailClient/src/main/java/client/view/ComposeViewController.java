@@ -1,5 +1,6 @@
 package client.view;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
@@ -152,7 +153,11 @@ public class ComposeViewController implements Initializable {
     }
 
     /**
-     * Gestisce l'evento di invio email.
+     * Gestisce l'evento di invio dell'email.
+     * Recupera i dati dai campi della vista, valida i destinatari,
+     * crea l'oggetto Email e avvia l'invio in un thread separato.
+     * Mostra un messaggio di errore se il formato di un destinatario non è valido
+     * o se l'invio fallisce, altrimenti chiude la finestra al termine dell'invio.
      */
     @FXML
     private void handleSend() {
@@ -180,18 +185,16 @@ public class ComposeViewController implements Initializable {
         sendButton.setDisable(true);
         sendButton.setText("Invio...");
 
-        // Invio email in un thread separato
         Thread sendThread = new Thread(() -> {
-            boolean success = clientController.sendEmail(email);
+            String result = clientController.sendEmail(email);
 
-            javafx.application.Platform.runLater(() -> {
-                if (success) {
+            Platform.runLater(() -> {
+                if (result == null) {
                     closeWindow();
                 } else {
                     sendButton.setDisable(false);
                     sendButton.setText("Invia");
-                    showAlert("Errore", "Impossibile inviare l'email. Verifica la connessione al server.",
-                            Alert.AlertType.ERROR);
+                    showAlert("Errore", result, Alert.AlertType.ERROR);
                 }
             });
         });

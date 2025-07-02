@@ -12,6 +12,7 @@ import java.io.*;
 import java.net.Socket;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Gestisce la comunicazione con un singolo client.
@@ -110,27 +111,32 @@ public class ClientHandler implements Runnable {
     }
 
     /**
-     * Gestisce l'invio di una email.
-     * @param emailJson email in formato JSON
+     * Gestisce la richiesta di invio di una email da parte del client.
+     * Deserializza l'oggetto Email dal formato JSON, verifica la validità del mittente e dei destinatari,
+     * consegna l'email tramite il modello e invia la risposta al client.
+     * In caso di errore, restituisce un messaggio di errore appropriato.
+     *
+     * @param emailJson email in formato JSON da inviare
      * @param out stream di output verso il client
      */
     private void handleSendEmail(String emailJson, PrintWriter out) {
         try {
             Email email = gson.fromJson(emailJson, Email.class);
 
-            // Controlla ogni destinatario
-            for (String recipient : email.getRecipients()) {
-                // Prima verifica regex
-                if (!EmailValidator.isValidEmailFormat(recipient)) {
-                    out.println("ERROR:Formato email non valido: " + recipient);
-                    return;
-                }
+            // Verifica mittente
+            if (!model.isValidEmail(email.getSender())) {
+                out.println("ERROR: Mittente non registrato: " + email.getSender());
+                return;
+            }
 
-                // Poi verifica esistenza sul server
-                if (!model.isValidEmail(recipient)) {
-                    out.println("ERROR:Destinatario non registrato: " + recipient);
-                    return;
-                }
+            // Verifica destinatari
+            List<String> invalidRecipients = email.getRecipients().stream()
+                    .filter(recipient -> !model.isValidEmail(recipient))
+                    .collect(Collectors.toList());
+
+            if (!invalidRecipients.isEmpty()) {
+                out.println("ERROR: Destinatari non validi: " + String.join(", ", invalidRecipients));
+                return;
             }
 
             model.deliverEmail(email);
