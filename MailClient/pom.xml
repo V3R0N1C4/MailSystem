@@ -48,12 +48,6 @@
             <version>1.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
-
-        <dependency>
-            <groupId>com.example</groupId>
-            <artifactId>MailCommon</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
     </dependencies>
 
     <build>

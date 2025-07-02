@@ -13,7 +13,7 @@ public class EmailValidator {
      */
     private static final String EMAIL_PATTERN =
             "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@" +
-                    "(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
+                    "(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";  // Parte dominio (con punto obbligatorio)
 
     /**
      * Pattern compilato per la validazione delle email.

@@ -108,7 +108,7 @@ public class ClientViewController implements Initializable {
      * Resetta la sessione utente e la UI.
      */
     private void resetSession() {
-        // 1. Ferma servizi esistenti
+        // Ferma servizi esistenti
         if (uiUpdateScheduler != null) {
             uiUpdateScheduler.shutdown();
         }
@@ -116,23 +116,23 @@ public class ClientViewController implements Initializable {
             controller.shutdown();
         }
 
-        // 2. Crea nuove istanze controller e modello
+        // Crea nuove istanze controller e modello
         controller = new ClientController();
         model = controller.getModel();
 
-        // 3. Collega le liste al modello
+        // Collega le liste al modello
         inboxListView.setItems(model.getInbox());
         sentListView.setItems(model.getSentEmails());
 
-        // 4. Avvia aggiornamento stato connessione
+        // Avvia aggiornamento stato connessione
         startConnectionStatusUpdater();
 
-        // 5. Resetta stato UI
+        // Resetta stato UI
         clearEmailDetails();
         enableEmailActions(false);
         selectedEmail = null;
 
-        // 6. Focus sul campo email
+        // Focus sul campo email
         Platform.runLater(() -> emailField.requestFocus());
     }
 
@@ -213,7 +213,7 @@ public class ClientViewController implements Initializable {
     }
 
     /**
-     * Gestisce la pressione del bottone "Componi".
+     * Gestisce la pressione del bottone "Nuova Email".
      */
     @FXML
     private void handleCompose() {
@@ -344,7 +344,7 @@ public class ClientViewController implements Initializable {
      */
     @FXML
     private void handleLogout() {
-        // 1. Ferma i servizi in background
+        // Ferma i servizi in background
         if (uiUpdateScheduler != null) {
             uiUpdateScheduler.shutdown();
         }
@@ -352,12 +352,12 @@ public class ClientViewController implements Initializable {
             controller.shutdown();
         }
 
-        // 2. Pulisci le liste e i dettagli
+        // Pulisci le liste e i dettagli
         inboxListView.setItems(FXCollections.observableArrayList());
         sentListView.setItems(FXCollections.observableArrayList());
         clearEmailDetails();
 
-        // 3. Mostra la schermata di login
+        // Mostra la schermata di login
         authBox.setVisible(true);
         authBox.setManaged(true);
         toolbarBox.setVisible(false);
@@ -365,19 +365,19 @@ public class ClientViewController implements Initializable {
         mainSplitPane.setVisible(false);
         mainSplitPane.setManaged(false);
 
-        // 4. Resetta lo stato della connessione
+        // Resetta lo stato della connessione
         connectionStatus.setText("Non connesso");
         connectionStatus.setStyle("-fx-text-fill: red;");
 
-        // 5. Resetta il titolo della finestra
+        // Resetta il titolo della finestra
         Stage stage = (Stage) logoutButton.getScene().getWindow();
         stage.setTitle("Mail Client");
 
-        // 6. Focus sul campo email
+        // Focus sul campo email
         emailField.clear();
         emailField.requestFocus();
 
-        // 7. Prepara una nuova sessione
+        // Prepara una nuova sessione
         resetSession();
     }
 
