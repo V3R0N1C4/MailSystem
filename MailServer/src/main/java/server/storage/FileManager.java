@@ -1,13 +1,19 @@
 package server.storage;
 
-import server.model.Email;
-
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import server.model.Email;
 
 /**
  * Gestisce la persistenza delle mailbox degli utenti su file.
@@ -80,7 +86,8 @@ public class FileManager {
      */
     public void saveMailbox(String emailAddress, List<Email> receivedEmails, List<Email> sentEmails) {
         // Ottiene o crea un lock per l'utente
-        Lock lock = fileLocksMap.computeIfAbsent(emailAddress, k -> new ReentrantLock());
+    Lock lock = fileLocksMap.computeIfAbsent(emailAddress, k -> new ReentrantLock());
+    // Acquisisce il lock
         lock.lock();
         try {
             // Costruisce il nome del file a partire dall'indirizzo email
