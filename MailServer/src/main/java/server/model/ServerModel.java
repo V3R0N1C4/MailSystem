@@ -16,7 +16,7 @@ import java.util.Map;
  * e l'interazione con il FileManager per la persistenza dei dati.
  */
 public class ServerModel {
-    private Map<String, Mailbox> mailboxes;     // Mappa che associa ogni indirizzo email alla relativa Mailbox
+    private Map<String, Mailbox> mailboxesMap;     // Mappa che associa ogni indirizzo email alla relativa Mailbox
     private ObservableList<String> serverLog;   // Lista osservabile per il log del server (usata per aggiornare la GUI)
     private FileManager fileManager;            // Gestore per il salvataggio e caricamento delle mailbox su disco
 
@@ -24,7 +24,7 @@ public class ServerModel {
      * Costruttore: inizializza le strutture dati, crea account predefiniti e carica le mailbox.
      */
     public ServerModel() {
-        this.mailboxes = new HashMap<>();
+        this.mailboxesMap = new HashMap<>();
         this.serverLog = FXCollections.observableArrayList();
         this.fileManager = new FileManager();
 
@@ -45,7 +45,7 @@ public class ServerModel {
         };
 
         for (String account : defaultAccounts) {
-            mailboxes.put(account, new Mailbox(account));
+            mailboxesMap.put(account, new Mailbox(account));
         }
 
         addToLog("Server inizializzato con " + defaultAccounts.length + " account");
@@ -57,7 +57,7 @@ public class ServerModel {
      * @return true se l'email esiste, false altrimenti
      */
     public synchronized boolean isValidEmail(String email) {
-        return mailboxes.containsKey(email);
+        return mailboxesMap.containsKey(email);
     }
 
     /**
@@ -93,12 +93,12 @@ public class ServerModel {
         email.setRecipients(validRecipients);
 
         // Salva nella casella del mittente (inviati)
-        mailboxes.get(email.getSender()).addSentEmail(email);
+        mailboxesMap.get(email.getSender()).addSentEmail(email);
         saveMailbox(email.getSender());
 
         // Salva nella casella dei destinatari (ricevuti)
         for (String recipient : validRecipients) {
-            mailboxes.get(recipient).addEmail(email);
+            mailboxesMap.get(recipient).addEmail(email);
             saveMailbox(recipient);
             addToLog("Email consegnata a: " + recipient + " da: " + email.getSender());
         }
@@ -111,7 +111,7 @@ public class ServerModel {
      * @return lista di Email o null se la mailbox non esiste
      */
     public synchronized List<Email> getNewEmails(String emailAddress, int fromIndex) {
-        server.model.Mailbox mailbox = mailboxes.get(emailAddress);
+        server.model.Mailbox mailbox = mailboxesMap.get(emailAddress);
         if (mailbox != null) {
             return mailbox.getNewEmails(fromIndex);
         }
@@ -124,7 +124,7 @@ public class ServerModel {
      * @return lista di Email inviate o null se la mailbox non esiste
      */
     public synchronized List<Email> getSentEmails(String emailAddress) {
-        Mailbox mailbox = mailboxes.get(emailAddress);
+        Mailbox mailbox = mailboxesMap.get(emailAddress);
         if (mailbox != null) {
             return new ArrayList<>(mailbox.getSentEmails());
         }
@@ -139,7 +139,7 @@ public class ServerModel {
      * @return true se l'email è stata eliminata, false altrimenti
      */
     public synchronized boolean deleteEmail(String emailAddress, String emailId, boolean isSent) {
-        Mailbox mailbox = mailboxes.get(emailAddress);
+        Mailbox mailbox = mailboxesMap.get(emailAddress);
         if (mailbox != null) {
             boolean deleted;
             if (isSent) {
@@ -175,10 +175,10 @@ public class ServerModel {
      * Carica le email ricevute e inviate per ogni mailbox dagli archivi su disco.
      */
     private void loadMailboxes() {
-        for (String email : mailboxes.keySet()) {
+        for (String email : mailboxesMap.keySet()) {
             FileManager.MailboxData data = fileManager.loadMailbox(email);
-            mailboxes.get(email).setEmails(data.getReceivedEmails());
-            mailboxes.get(email).setSentEmails(data.getSentEmails());
+            mailboxesMap.get(email).setEmails(data.getReceivedEmails());
+            mailboxesMap.get(email).setSentEmails(data.getSentEmails());
         }
     }
 
@@ -187,7 +187,7 @@ public class ServerModel {
      * @param email indirizzo email della mailbox da salvare
      */
     private void saveMailbox(String email) {
-        Mailbox mailbox = mailboxes.get(email);
+        Mailbox mailbox = mailboxesMap.get(email);
         if (mailbox != null) {
             fileManager.saveMailbox(
                     email,
@@ -200,5 +200,5 @@ public class ServerModel {
     // Getter per il log del server
     public ObservableList<String> getServerLog() { return serverLog; }
     // Getter per la mappa delle mailbox
-    public Map<String, Mailbox> getMailboxes() { return mailboxes; }
+    public Map<String, Mailbox> getMailboxesMap() { return mailboxesMap; }
 }
