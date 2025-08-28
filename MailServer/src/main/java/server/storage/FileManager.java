@@ -105,7 +105,6 @@ public class FileManager {
      * @param emailAddress indirizzo email dell'utente
      * @return oggetto MailboxData con le email ricevute e inviate
      */
-    @SuppressWarnings("unchecked")
     public MailboxData loadMailbox(String emailAddress) {
         // Ottiene o crea un lock per l'utente
         Lock lock = fileLocksMap.computeIfAbsent(emailAddress, k -> new ReentrantLock());
@@ -123,16 +122,8 @@ public class FileManager {
             // Legge l'oggetto dal file
             try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(fileName))) {
                 Object obj = ois.readObject();
+                return (MailboxData) obj;
 
-                // Gestione compatibilità con vecchio formato (solo lista di email ricevute)
-                if (obj instanceof ArrayList) {
-                    List<Email> oldList = (ArrayList<Email>) obj;
-                    return new MailboxData(oldList, new ArrayList<>());
-                } else if (obj instanceof MailboxData) {
-                    return (MailboxData) obj;
-                } else {
-                    throw new IOException("Formato file non supportato");
-                }
             } catch (IOException | ClassNotFoundException e) {
                 System.err.println("Errore nel caricare la mailbox per " + emailAddress + ": " + e.getMessage());
                 return new MailboxData(new ArrayList<>(), new ArrayList<>());
