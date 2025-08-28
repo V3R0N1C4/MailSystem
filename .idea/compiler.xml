@@ -11,10 +11,10 @@
         <outputRelativeToContentRoot value="true" />
         <module name="MailServer" />
         <module name="MailClient" />
-        <module name="MailCommon" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
+      <module name="MailCommon" target="1.8" />
       <module name="MailServer (1)" target="11" />
     </bytecodeTargetLevel>
   </component>

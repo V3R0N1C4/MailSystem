@@ -16,7 +16,7 @@ public class FileManager {
     // Directory dove vengono salvati i dati delle mailbox
     private static final String DATA_DIR = "maildata";
     // Mappa per gestire i lock sui file delle mailbox, uno per ogni utente
-    private final ConcurrentHashMap<String, Lock> fileLocks;
+    private final ConcurrentHashMap<String, Lock> fileLocksMap;
 
     /**
      * Classe interna che rappresenta i dati di una mailbox,
@@ -58,7 +58,7 @@ public class FileManager {
      * Inizializza la mappa dei lock e crea la directory dati se non esiste.
      */
     public FileManager() {
-        this.fileLocks = new ConcurrentHashMap<>();
+        this.fileLocksMap = new ConcurrentHashMap<>();
         createDataDirectory();
     }
 
@@ -80,7 +80,7 @@ public class FileManager {
      */
     public void saveMailbox(String emailAddress, List<Email> receivedEmails, List<Email> sentEmails) {
         // Ottiene o crea un lock per l'utente
-        Lock lock = fileLocks.computeIfAbsent(emailAddress, k -> new ReentrantLock());
+        Lock lock = fileLocksMap.computeIfAbsent(emailAddress, k -> new ReentrantLock());
         lock.lock();
         try {
             // Costruisce il nome del file a partire dall'indirizzo email
@@ -108,7 +108,7 @@ public class FileManager {
     @SuppressWarnings("unchecked")
     public MailboxData loadMailbox(String emailAddress) {
         // Ottiene o crea un lock per l'utente
-        Lock lock = fileLocks.computeIfAbsent(emailAddress, k -> new ReentrantLock());
+        Lock lock = fileLocksMap.computeIfAbsent(emailAddress, k -> new ReentrantLock());
         lock.lock();
         try {
             // Costruisce il nome del file a partire dall'indirizzo email
