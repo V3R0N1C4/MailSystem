@@ -1,5 +1,6 @@
 package client.view;
 
+import client.model.EmailValidator;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -13,8 +14,7 @@ import javafx.stage.Stage;
 
 import client.controller.ClientController;
 import client.model.ClientModel;
-import common.model.EmailValidator;
-import common.model.Email;
+import client.model.Email;
 
 import java.io.IOException;
 import java.net.URL;

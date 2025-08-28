@@ -7,8 +7,8 @@ import javafx.scene.control.*;
 import javafx.stage.Stage;
 
 import client.controller.ClientController;
-import common.model.EmailValidator;
-import common.model.Email;
+import client.model.Email;
+import client.model.EmailValidator;
 
 import java.net.URL;
 import java.util.Arrays;

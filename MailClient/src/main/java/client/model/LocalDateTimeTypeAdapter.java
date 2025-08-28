@@ -1,11 +1,12 @@
-package common.model;
+package client.model;
 
-import com.google.gson.TypeAdapter;         // Importa la classe TypeAdapter di Gson per la serializzazione/deserializzazione personalizzata
-import com.google.gson.stream.JsonReader;   // Importa JsonReader per leggere dati JSON
-import com.google.gson.stream.JsonWriter;   // Importa JsonWriter per scrivere dati JSON
-import java.io.IOException;                 // Importa IOException per gestire errori di I/O
-import java.time.LocalDateTime;             // Importa LocalDateTime per gestire date e orari
-import java.time.format.DateTimeFormatter;  // Importa DateTimeFormatter per formattare e fare il parsing delle date
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 
 /**

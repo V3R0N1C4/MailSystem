@@ -1,6 +1,6 @@
 package server.storage;
 
-import common.model.Email;
+import server.model.Email;
 
 import java.io.*;
 import java.util.ArrayList;

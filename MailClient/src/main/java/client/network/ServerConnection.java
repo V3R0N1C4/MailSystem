@@ -1,6 +1,7 @@
 package client.network;
 
 // Importazione delle librerie necessarie
+import client.model.LocalDateTimeTypeAdapter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -11,8 +12,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
-import common.model.LocalDateTimeTypeAdapter;
-import common.model.Email;
+import client.model.Email;
 
 /**
  * Classe che gestisce la connessione al server per l'invio e la ricezione di email.

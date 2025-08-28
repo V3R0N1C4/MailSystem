@@ -1,7 +1,7 @@
 package client.controller;
 
 import client.model.ClientModel;
-import common.model.Email;
+import client.model.Email;
 
 /**
  * Controller principale per la gestione delle operazioni del client email.

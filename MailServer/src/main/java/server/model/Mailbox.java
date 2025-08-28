@@ -4,7 +4,6 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import java.util.ArrayList;
 import java.util.List;
-import common.model.Email;
 
 /**
  * Rappresenta una casella di posta elettronica con gestione delle email ricevute e inviate.

@@ -1,7 +1,5 @@
 package client.model;
 
-import common.model.Email;
-import common.model.EmailValidator;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;

@@ -2,10 +2,9 @@ client/controller/ClientController.class
 client/view/ClientViewController$EmailListCell$1.class
 client/view/ComposeViewController.class
 client/model/LocalDateTimeTypeAdapter.class
-client/view/ClientViewController$EmailListCell$2.class
 client/model/EmailValidator.class
-client/view/ClientViewController$EmailListCell$3.class
 client/view/ClientViewController$EmailListCell.class
+client/network/ServerConnection$2.class
 client/model/Email.class
 client/network/ServerConnection.class
 client/network/ServerConnection$1.class

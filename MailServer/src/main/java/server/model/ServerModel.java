@@ -5,7 +5,6 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import java.util.ArrayList;
 
-import common.model.Email;
 import server.storage.FileManager;
 
 import java.util.HashMap;

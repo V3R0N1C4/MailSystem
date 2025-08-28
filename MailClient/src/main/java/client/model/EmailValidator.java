@@ -1,4 +1,4 @@
-package common.model;
+package client.model;
 
 import java.util.regex.Pattern;
 
