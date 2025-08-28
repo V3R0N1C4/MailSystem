@@ -1,0 +1,18 @@
+## IDE configs
+# VS Code settings in any module
+.vscode/
+MailClient/.vscode/
+MailServer/.vscode/
+
+## Build artifacts (Maven)
+# Ignore module build output
+MailClient/target/
+MailServer/target/
+
+## Mail server runtime data
+# Persisted mailboxes (do not commit user data)
+MailServer/maildata/*.dat
+
+# Keep any project-specific ignores below
+MailClient/.vscode/launch.json
+MailClient/.vscode/settings.json
