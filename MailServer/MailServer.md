@@ -1,124 +1,354 @@
-# Analisi Dettagliata del Progetto MailServer
+# MailServer — Guida Definitiva, passo per passo
 
-Questo documento fornisce un'analisi completa del progetto `MailServer`, descrivendo l'architettura, i componenti chiave e il flusso di lavoro. L'obiettivo è offrire una guida chiara per comprendere e studiare il codice sorgente.
+Questa è la guida completa e ragionata del progetto MailServer. È pensata per farti capire ogni parte del codice, come si avvia in locale, come funziona sotto il cofano, e come estenderlo in modo sicuro. Al termine della lettura avrai piena padronanza dell’architettura, del protocollo di rete e dei dettagli d’implementazione.
 
-## Architettura Generale
+Indice rapido:
 
-Il `MailServer` è un'applicazione Java costruita con le seguenti tecnologie e principi:
+- Panoramica e obiettivi
+- Setup ambiente (Windows + VS Code)
+- Avvio rapido (Maven/JavaFX)
+- Architettura e threading
+- Walkthrough del codice (classe per classe)
+- Protocollo di rete (formati, esempi)
+- Persistenza su disco (formati, locking)
+- Estensioni e manutenzione
+- Troubleshooting (errori comuni, soluzioni)
 
-- **Java 11**: Versione del linguaggio utilizzata per lo sviluppo.
-- **JavaFX**: Utilizzato per creare una semplice interfaccia grafica (GUI) che mostra i log delle attività del server in tempo reale.
-- **Socket Programming**: Il server comunica con i client tramite socket TCP/IP. Utilizza un'architettura multi-threaded per gestire più client contemporaneamente.
-- **Maven**: Usato come strumento di build e gestione delle dipendenze.
-- **Gson**: Libreria di Google per la serializzazione e deserializzazione di oggetti Java in formato JSON, utilizzata per lo scambio di dati complessi (come le email) con i client.
-- **Persistenza su File**: Le caselle di posta degli utenti (email ricevute e inviate) vengono salvate sul disco locale tramite serializzazione di oggetti Java.
+## Panoramica
 
-L'architettura segue il pattern **Model-View-Controller (MVC)** in modo approssimativo:
-- **Model**: Le classi nel package `server.model` (es. `Email`, `Mailbox`, `ServerModel`) rappresentano i dati e la logica di business.
-- **View**: Il file FXML (`ServerView.fxml`) definisce la struttura dell'interfaccia utente.
-- **Controller**: Il `ServerViewController` gestisce l'interazione tra la vista e il modello, mentre il `ClientHandler` agisce come controller per le richieste di rete.
+Tecnologie chiave:
 
-## Flusso di Lavoro Principale
+- Java (target: 11; compilabile con JDK più recenti)
+- JavaFX (GUI per i log del server)
+- Sockets TCP (multi-thread, un client per thread)
+- Maven (build, dipendenze, esecuzione)
+- Gson (serializzazione/deserializzazione JSON)
+- Persistenza su file (serializzazione Java, compatibilità retro)
 
-1.  **Avvio**: L'applicazione viene avviata tramite la classe `ServerApplication`. Questa inizializza l'interfaccia JavaFX e il `ServerViewController`.
-2.  **Inizializzazione del Server**: Il `ServerViewController` crea un'istanza del `ServerModel` e avvia il `SocketServer` in un thread separato.
-3.  **Ascolto delle Connessioni**: Il `SocketServer` si mette in ascolto sulla porta 8080.
-4.  **Gestione Client**: Quando un client si connette, il `SocketServer` accetta la connessione e crea un nuovo thread con un'istanza di `ClientHandler` per gestire specificamente quel client.
-5.  **Elaborazione Richieste**: Il `ClientHandler` legge la richiesta del client (es. "SEND_EMAIL:{...}"), la interpreta e invoca i metodi appropriati sul `ServerModel`.
-6.  **Interazione con i Dati**: Il `ServerModel` esegue la logica di business, come consegnare un'email o recuperare messaggi, interagendo con gli oggetti `Mailbox`.
-7.  **Persistenza**: Le modifiche alle caselle di posta vengono salvate su file tramite il `FileManager` per garantire che i dati non vengano persi alla chiusura del server.
-8.  **Risposta al Client**: Il `ClientHandler` invia una risposta al client ("OK" o "ERROR") e chiude la connessione.
-9.  **Logging**: Tutte le operazioni significative vengono registrate nel `ServerModel` e visualizzate nella `ListView` dell'interfaccia grafica.
-10. **Arresto**: Quando l'utente chiude la finestra, il `ServerViewController` chiama il metodo `shutdown()`, che arresta il `SocketServer` in modo pulito.
+Pattern architetturale: Model–View–Controller (MVC) pragmatico.
 
----
+- Model: `server.model.*`
+- View: `src/main/resources/server/view/ServerView.fxml`
+- Controller GUI: `server.view.ServerViewController`
+- Controller rete: `server.controller.ClientHandler`
 
-## Analisi dei File per Ordine di Studio
+Flusso principale (end-to-end):
 
-### 1. I Modelli di Dati (`src/main/java/server/model/`)
+1) `ServerApplication` avvia la GUI JavaFX e carica `ServerView.fxml`.
+2) `ServerViewController.initialize` crea `ServerModel`, collega la ListView ai log, avvia `SocketServer` su porta 8080.
+3) `SocketServer` accetta connessioni, ciascuna gestita da un `ClientHandler` in un thread separato.
+4) `ClientHandler` legge una singola riga di richiesta `COMANDO:DATI`, invoca `ServerModel` e risponde `OK:...` o `ERROR:...`.
+5) `ServerModel` aggiorna caselle (`Mailbox`), salva su disco tramite `FileManager` e scrive sul log (aggiornato in GUI).
+6) Alla chiusura finestra, `ServerApplication` invoca `controller.shutdown()`, che ferma `SocketServer`.
 
-#### `Email.java`
-- **Scopo**: Rappresenta una singola email. È un POJO (Plain Old Java Object) che implementa `Serializable` per poter essere salvato su file.
-- **Campi Chiave**:
-    - `id`: `String` - UUID univoco per ogni email.
-    - `sender`: `String` - Indirizzo email del mittente.
-    - `recipients`: `List<String>` - Lista di destinatari.
-    - `subject`: `String` - Oggetto dell'email.
-    - `body`: `String` - Corpo del messaggio.
-    - `timestamp`: `LocalDateTime` - Data e ora di creazione.
+## Setup ambiente (Windows + VS Code)
 
-#### `Mailbox.java`
-- **Scopo**: Rappresenta la casella di posta di un utente.
-- **Campi Chiave**:
-    - `emails`: `ObservableList<Email>` - Lista delle email ricevute.
-    - `sentEmails`: `ObservableList<Email>` - Lista delle email inviate.
-- **Caratteristiche**: I metodi sono `synchronized` per garantire la thread-safety, dato che più `ClientHandler` potrebbero tentare di accedere alla stessa casella di posta.
+Prerequisiti:
 
-#### `EmailValidator.java`
-- **Scopo**: Classe di utilità con un metodo statico `isValidEmailFormat(String email)` che usa una regex per validare il formato di un indirizzo email.
+- JDK installato (JDK 11 o superiore). In questo progetto è configurato target 11; funziona anche con JDK 17/21/24.
+- Maven installato e raggiungibile come `mvn` (o specifica il path completo a `mvn.cmd`).
+- VS Code con estensioni Java (Language Support for Java) e Maven (facoltativa ma utile).
 
-#### `LocalDateTimeTypeAdapter.java`
-- **Scopo**: Adattatore per la libreria Gson. Converte gli oggetti `LocalDateTime` in stringhe in formato ISO 8601 e viceversa durante la serializzazione/deserializzazione JSON. È necessario perché Gson non supporta nativamente i tipi di data/ora di Java 8+.
+Impostare Maven in VS Code (se richiesto):
 
-### 2. La Persistenza dei Dati (`src/main/java/server/storage/`)
+- Impostazione “Maven › Executable: Path”: inserisci il percorso completo del binario Maven su Windows:
+  `C:\Users\yasse\Tools\apache-maven-3.9.9\bin\mvn.cmd`
+- In alternativa, aggiungi a livello utente nelle impostazioni JSON:
+  "maven.executable.path": "C:\\Users\\yasse\\Tools\\apache-maven-3.9.9\\bin\\mvn.cmd"
+- Dopo l’impostazione, riavvia VS Code o “Developer: Reload Window”.
 
-#### `FileManager.java`
-- **Scopo**: Gestisce il salvataggio e il caricamento delle caselle di posta su file nella directory `maildata/`.
-- **Funzionamento**:
-    - **Salvataggio (`saveMailbox`)**: Serializza un oggetto `MailboxData` (che contiene le liste di email ricevute e inviate) in un file binario `.dat`.
-    - **Caricamento (`loadMailbox`)**: Deserializza il file `.dat` per recuperare lo stato di una casella di posta. Gestisce anche la compatibilità con un vecchio formato di file.
-    - **Thread-Safety**: Utilizza una `ConcurrentHashMap` di `ReentrantLock` per associare un lock a ogni file di mailbox. Questo impedisce race condition quando più thread tentano di accedere allo stesso file contemporaneamente.
+Nota JDK vs JavaFX: non tentare di eseguire la classe `server.ServerApplication` con un semplice `java ...` senza moduli JavaFX sul classpath/module-path. Usa Maven (plugin JavaFX) per l’esecuzione: si occuperà lui delle dipendenze JavaFX.
 
-### 3. La Logica di Business (`src/main/java/server/model/ServerModel.java`)
+## Avvio rapido (build ed esecuzione)
 
-- **Scopo**: È il cuore pulsante del server. Centralizza tutta la logica di business.
-- **Funzioni Principali**:
-    - Gestisce una mappa in memoria di tutte le caselle di posta (`Mailbox`).
-    - `isValidEmail(String email)`: Controlla se un utente esiste.
-    - `deliverEmail(Email email)`: Aggiunge l'email alla cartella "inviata" del mittente e alle caselle di posta di tutti i destinatari. Chiama `FileManager` per persistere le modifiche.
-    - `getNewEmails(...)`, `getSentEmails(...)`, `deleteEmail(...)`: Fornisce le operazioni CRUD (Create, Read, Update, Delete) sulle email.
-    - `getServerLog()`: Restituisce una `ObservableList<String>` a cui l'interfaccia grafica si collega per visualizzare i log.
-    - `addToLog(String message)`: Aggiunge un nuovo messaggio ai log.
+Apri un nuovo terminale in VS Code nella cartella del progetto e:
 
-### 4. La Gestione della Rete (`src/main/java/server/network/` e `controller/`)
+- Verifica Maven: `mvn -v`
+- Build: `mvn -DskipTests package`
+- Esegui GUI JavaFX (server): `mvn -Djavafx.platform=win javafx:run`
 
-#### `SocketServer.java`
-- **Scopo**: Ascolta le connessioni TCP in ingresso.
-- **Funzionamento**:
-    - Implementa `Runnable` per essere eseguito in un thread separato.
-    - In un ciclo `while(running)`, attende le connessioni dei client con `serverSocket.accept()`.
-    - Per ogni connessione, crea un nuovo `ClientHandler` e lo avvia in un nuovo thread, passando il socket del client e un riferimento al `ServerModel`.
+Esito atteso:
 
-#### `ClientHandler.java`
-- **Scopo**: Gestisce la comunicazione con un singolo client per la durata di una singola richiesta.
-- **Funzionamento**:
-    - Legge la richiesta dal client, formattata come `COMANDO:DATI`.
-    - Usa uno `switch` sul `COMANDO` per decidere quale azione eseguire.
-    - Deserializza i `DATI` da JSON a oggetti Java (es. `Email`) usando Gson.
-    - Chiama i metodi appropriati sul `ServerModel` per eseguire l'operazione richiesta.
-    - Serializza la risposta in JSON se necessario.
-    - Invia una risposta al client (`OK:` o `ERROR:`).
-    - Chiude la connessione.
+- Build: `BUILD SUCCESS`
+- Avvio: finestra “Mail Server” e log iniziale (es. “Server avviato sulla porta 8080”).
 
-### 5. L'Interfaccia Utente (`src/main/java/server/view/` e `controller/`)
+Perché non usare `java -cp ... server.ServerApplication`? Perché JavaFX non è parte del JDK dal Java 11 in poi: il plugin Maven aggiunge i moduli corretti. Eseguendo “a mano” va impostato manualmente il module-path (sconsigliato in questo contesto).
 
-#### `ServerViewController.java`
-- **Scopo**: Il controller per la GUI del server.
-- **Funzionamento**:
-    - `initialize()`: Metodo chiamato all'avvio. Inizializza il `ServerModel`, collega la `logListView` ai log del modello e avvia il `SocketServer`.
-    - `shutdown()`: Metodo chiamato alla chiusura della finestra. Arresta il `SocketServer` per una chiusura pulita.
+## Architettura e threading
 
-### 6. Il Punto di Ingresso (`src/main/java/server/ServerApplication.java`)
+Componenti principali:
 
-- **Scopo**: Classe principale che avvia l'applicazione JavaFX.
-- **Funzionamento**:
-    - Il metodo `main` chiama `launch(args)`.
-    - Il metodo `start` carica l'interfaccia dal file FXML, imposta la scena e gestisce l'evento di chiusura della finestra per chiamare `controller.shutdown()`.
+- GUI JavaFX: mostra i log del server in tempo reale.
+- `SocketServer` (thread dedicato): accetta connessioni e crea un `ClientHandler` per ciascun client.
+- `ClientHandler` (uno per connessione): legge 1 richiesta, la elabora e chiude.
+- `ServerModel`: logica di business; gestisce caselle (`Mailbox`) e interagisce con `FileManager`.
+- `FileManager`: persiste su disco (thread-safe via lock per mailbox).
 
-### 7. Configurazione del Progetto (`pom.xml`)
+Thread-safety:
 
-- **Scopo**: File di configurazione di Maven.
-- **Sezioni Chiave**:
-    - `<properties>`: Specifica che il progetto usa Java 11.
-    - `<dependencies>`: Dichiara le dipendenze necessarie: `javafx-controls`, `javafx-fxml` e `gson`.
-    - `<plugins>`: Configura il `javafx-maven-plugin` per poter eseguire l'applicazione direttamente da Maven, specificando `server.ServerApplication` come classe principale.
+- `SocketServer` gira finché `running==true`; la `accept()` è bloccante.
+- `ClientHandler`: per ogni richiesta, singolo giro di vita; usa `Gson` per JSON e scrive log.
+- `Mailbox` usa metodi `synchronized` per mutazioni sicure.
+- `FileManager` usa un `ReentrantLock` per utente (chiave: indirizzo email) in una `ConcurrentHashMap`.
+- Logs: `ServerModel.addToLog` usa `Platform.runLater` per aggiornare in sicurezza la `ObservableList` legata alla GUI.
+
+## Walkthrough del codice (classe per classe)
+
+Percorso sorgente: `src/main/java/server/**`
+
+### server.ServerApplication
+
+Punto d’ingresso JavaFX.
+
+- Carica FXML: `/server/view/ServerView.fxml`.
+- Costruisce la `Scene` (600x400), imposta titolo.
+- Recupera `ServerViewController` e registra handler di chiusura finestra che invoca `controller.shutdown()`.
+- `main(String[] args)` → `launch(args)`.
+
+Concetto chiave: tutta la parte di rete non è avviata qui, ma nel controller della vista (separazione ruoli GUI/business/rete).
+
+### server.view.ServerViewController
+
+Controller della GUI.
+
+- `initialize(...)`:
+  - Crea `ServerModel`.
+  - `logListView.setItems(model.getServerLog())` per log in tempo reale.
+  - Crea `SocketServer(8080, model)`, lo avvia in un thread `daemon`.
+  - Log iniziale: “Server avviato sulla porta 8080”.
+- `shutdown()`:
+  - Ferma `SocketServer.stop()` e logga “Server arrestato”.
+
+Nota: La porta 8080 è hardcoded. Per cambiarla, modifica il costruttore in `initialize`.
+
+### server.network.SocketServer
+
+Accetta connessioni client.
+
+- Campi: `port`, `model`, `ServerSocket serverSocket`, `volatile boolean running`.
+- `run()`:
+  - `serverSocket = new ServerSocket(port)`; log: “Server in ascolto sulla porta …”.
+  - Loop finché `running`: `accept()` → crea `ClientHandler` → `new Thread(handler).start()`.
+  - Errori di `accept`: logga solo se `running` (così lo stop non spammerà errori).
+- `stop()`:
+  - `running=false` e `serverSocket.close()` se aperto.
+
+### server.controller.ClientHandler
+
+Gestisce UNA richiesta per connessione (stile HTTP 1.0 “short-lived”).
+
+- Costruito con `Socket clientSocket` e `ServerModel model`.
+- Usa `Gson` con `LocalDateTimeTypeAdapter` per serializzare date ISO.
+- `run()`:
+  - `BufferedReader`/`PrintWriter` sul socket.
+  - `String request = in.readLine()`; se non null → `handleRequest(request, out)`.
+  - Chiude connessione e logga chiusura.
+- `handleRequest(String request, PrintWriter out)`
+  - Parsing: `COMANDO:DATI` (split con `":"`, max 2 parti).
+  - Switch:
+    - `VALIDATE_EMAIL`
+    - `SEND_EMAIL`
+    - `GET_EMAILS`
+    - `GET_SENT_EMAILS`
+    - `DELETE_EMAIL`
+    - default → `ERROR:Comando non riconosciuto`
+
+Handler specifici:
+
+- `handleValidateEmail(email, out)` → `model.isValidEmail(email)` → `OK:Email valida` o `ERROR:Email non esistente`.
+- `handleSendEmail(emailJson, out)` → `Email` da JSON → verifica mittente e destinatari → `model.deliverEmail(email)` → `OK:Email inviata con successo` o `ERROR:...` con dettaglio.
+- `handleGetEmails("email,fromIndex", out)` → ritorna `OK:[...]` con lista JSON delle nuove ricevute a partire da `fromIndex`.
+- `handleGetSentEmails(email, out)` → `OK:[...]` con lista JSON inviate.
+- `handleDeleteEmail("email,emailId,isSent", out)` → elimina e salva → `OK:Email eliminata` o `ERROR:Email non trovata`.
+
+### server.model.ServerModel
+
+Cuore della logica.
+
+- Strutture:
+  - `Map<String, Mailbox> mailboxes` (in memoria)
+  - `ObservableList<String> serverLog` (GUI)
+  - `FileManager fileManager`
+- Costruttore:
+  - `initializeDefaultAccounts()` → crea caselle predefinite: `cl16@mail.com`, `mv33@mail.com`, `op81@mail.com`. Logga il conteggio.
+  - `loadMailboxes()` → carica ricevute e inviate da disco per ciascuna casella.
+- Metodi principali:
+  - `isValidEmail(String email)` → esistenza in `mailboxes`.
+  - `deliverEmail(Email email)` → valida mittente e destinatari; aggiorna inviate/ricevute; salva ogni mailbox toccata; logga consegne ed errori.
+  - `getNewEmails(String email, int fromIndex)` → lista nuove ricevute da indice (o `null` se mailbox assente).
+  - `getSentEmails(String email)` → copia lista inviate (o `null`).
+  - `deleteEmail(String email, String emailId, boolean isSent)` → rimuove, salva e logga; ritorna boolean.
+  - `addToLog(String message)` → aggiorna lista log con timestamp `HH:mm:ss` usando `Platform.runLater`.
+  - `getServerLog()` e `getMailboxes()` getter.
+
+Nota: alcuni metodi restituiscono `null` se la mailbox non esiste. I client dovrebbero gestire `ERROR` se si passa un indirizzo non valido.
+
+### server.model.Mailbox
+
+Rappresenta la casella utente.
+
+- Campi: `emailAddress`, `ObservableList<Email> emails` (ricevute), `ObservableList<Email> sentEmails` (inviate), `lastSyncIndex` (non usato).
+- Metodi sincronizzati per aggiungere/rimuovere e per ottenere “nuove” email da un indice.
+- `setEmails`/`setSentEmails` rimpiazzano i contenuti mantenendo liste osservabili (utile per GUI).
+
+### server.model.Email
+
+Modello email serializzabile.
+
+- Campi: `id` (UUID), `sender`, `recipients`, `subject`, `body`, `timestamp`.
+- Crea id/timestamp nel costruttore.
+- `getFormattedTimestamp()` e `toString()` per rappresentazioni leggibili.
+
+### server.model.EmailValidator
+
+Utilità per convalida formato email (regex). Usalo lato client/validazione preliminare; lato server la validità “logica” è decisa da `ServerModel.isValidEmail`.
+
+### server.model.LocalDateTimeTypeAdapter
+
+Gson `TypeAdapter<LocalDateTime>`: serializza/deserializza in ISO_LOCAL_DATE_TIME. Garantisce interoperabilità JSON coerente.
+
+### server.storage.FileManager
+
+Persistenza su disco per ciascun utente.
+
+- Directory dati: `maildata/`.
+- File per utente: `maildata/<email_con_@_sostituita_da_->_underscore>.dat`, es.: `cl16_mail.com.dat` per `cl16@mail.com`.
+- Classe interna `MailboxData` contiene due liste: ricevute e inviate.
+- Lock per-utente con `ConcurrentHashMap<String, Lock>` per evitare corruzione quando più thread salvano/caricano.
+- Compatibilità retro: se il file contiene una semplice `ArrayList<Email>` (vecchio formato), viene mappata su “ricevute” e “inviate” vuote.
+
+### FXML: `src/main/resources/server/view/ServerView.fxml`
+
+Layout semplice in `VBox`:
+
+- Etichetta titolo: “Mail Server - Log Eventi”.
+- `ListView` (id: `logListView`) per i log in tempo reale.
+- `HBox` di stato con `Label` (`statusLabel`, “Server in esecuzione”).
+Il controller associato è `server.view.ServerViewController`.
+
+## Protocollo di rete
+
+Il protocollo è a testo semplice, una riga per richiesta e una per risposta. Formato generale:
+
+- Richiesta: `COMANDO:DATI` (il separatore `:` divide il comando dai dati; i dati possono essere stringhe semplici, liste CSV o JSON).
+- Risposta:
+  - Successo: `OK:<payload>` (il payload può essere vuoto, testo o JSON)
+  - Errore: `ERROR:<messaggio>`
+
+Comandi supportati:
+
+1) `VALIDATE_EMAIL:<email>`
+   - Esempio richiesta: `VALIDATE_EMAIL:cl16@mail.com`
+   - Risposta: `OK:Email valida` oppure `ERROR:Email non esistente`
+
+2) `SEND_EMAIL:<json_email>`
+   - JSON `Email` (campi: `id` opzionale, `sender`, `recipients` array, `subject`, `body`, `timestamp` opzionale)
+   - Esempio richiesta:
+     `SEND_EMAIL:{"sender":"cl16@mail.com","recipients":["mv33@mail.com"],"subject":"Ciao","body":"Test"}`
+   - Risposta: `OK:Email inviata con successo` oppure `ERROR: ...` (mittente/destinatari non validi, parse error)
+
+3) `GET_EMAILS:<email>,<fromIndex>`
+   - Esempio: `GET_EMAILS:mv33@mail.com,0`
+   - Risposta: `OK:[{...}, {...}]` (lista JSON delle nuove email ricevute da `fromIndex`)
+
+4) `GET_SENT_EMAILS:<email>`
+   - Esempio: `GET_SENT_EMAILS:cl16@mail.com`
+   - Risposta: `OK:[{...}]` (lista JSON delle inviate)
+
+5) `DELETE_EMAIL:<email>,<emailId>,<isSent>`
+   - Esempio: `DELETE_EMAIL:cl16@mail.com,7c2b...,true`
+   - Risposta: `OK:Email eliminata` oppure `ERROR:Email non trovata`
+
+Note:
+
+- Il server gestisce UNA richiesta per connessione. Se servono più comandi, il client deve aprire più connessioni sequenziali.
+- I timestamp JSON usano formato ISO, grazie all’adapter `LocalDateTimeTypeAdapter`.
+
+## Persistenza su disco
+
+Percorso: `maildata/`
+
+- Nome file: sostituisce `@` con `_`, es.: `op81@mail.com` → `op81_mail.com.dat`.
+- Contenuto: oggetto serializzato `FileManager.MailboxData` con due liste (`receivedEmails`, `sentEmails`).
+- Concorrenza: salvataggi/caricamenti protetti da lock per indirizzo.
+- Compatibilità: se trovi una semplice `ArrayList<Email>`, viene interpretata come “ricevute” e “invio” resta vuota.
+
+Quando avviene il salvataggio:
+
+- Su consegna email: salva mittente (inviate) e ciascun destinatario (ricevute).
+- Su eliminazione: salva la mailbox dell’utente da cui è stata rimossa l’email.
+
+## Estensioni e manutenzione
+
+Cambiare porta del server:
+
+- Modifica il costruttore in `ServerViewController.initialize`: `new SocketServer(<nuova_porta>, model)`.
+
+Aggiungere nuovi account di default:
+
+- In `ServerModel.initializeDefaultAccounts()`, aggiungi indirizzi nell’array `defaultAccounts` (anche dominio diverso; il file su disco userà `_`).
+
+Aggiungere un nuovo comando al protocollo:
+
+- `ClientHandler.handleRequest`: aggiungi un nuovo `case` con parsing dati e handler dedicato.
+- Aggiorna `ServerModel` con la logica di business e `FileManager` se serve persistenza.
+- Documenta qui il nuovo comando (richiesta/risposta, esempi).
+
+Migliorare robustezza API:
+
+- Evitare `null` come ritorno in `ServerModel.getNewEmails/getSentEmails`: preferire liste vuote per ridurre i controlli lato client.
+- Validazione input: usare `EmailValidator` anche lato protocollo (es. prima di salvare).
+
+Packaging e distribuzione:
+
+- Il jar in `target/MailServer-1.0-SNAPSHOT.jar` non è “fat jar” con JavaFX. Per esecuzione stand-alone senza Maven, servirebbe configurare JavaFX module-path (fuori dallo scopo di questa guida). La via consigliata è usare `mvn javafx:run`.
+
+Test (linee guida):
+
+- Non sono presenti test nel repo. Suggeriti:
+  - Unit test su `ServerModel` (consegna, eliminazione, getNewEmails, edge cases destinatari non validi).
+  - Test su `FileManager` con file temporanei (Junit `@TempDir`).
+  - Test del protocollo con socket loopback (client di test che invia richieste e verifica risposte).
+
+## Troubleshooting (problemi comuni)
+
+Errore “NoClassDefFoundError: Stage” o simili lanciando `java server.ServerApplication`:
+
+- Causa: JavaFX non è nel classpath/module-path. Soluzione: esegui con Maven plugin:
+  - `mvn -Djavafx.platform=win javafx:run`
+
+VS Code chiede il path di Maven:
+
+- Imposta: `C:\Users\yasse\Tools\apache-maven-3.9.9\bin\mvn.cmd` in “Maven › Executable: Path”.
+- Riavvia VS Code o ricarica la finestra.
+
+Build ok ma la GUI non parte con comandi diversi da Maven:
+
+- Usa sempre il plugin JavaFX per questo progetto; si occupa lui dei moduli JavaFX.
+
+Avvisi su JDK recenti (Jansi/Unsafe warnings):
+
+- Sono warning a runtime di Maven/Jansi con JDK nuovi (es. 24). Non bloccano la build.
+
+Porta in uso (8080):
+
+- Se la porta è occupata, il server non si avvia. Cambia la porta in `ServerViewController` oppure libera la 8080.
+
+Permessi su disco `maildata/`:
+
+- Assicurati che l’utente abbia permessi di lettura/scrittura nella cartella del progetto.
+
+## Riepilogo “come funziona” in 10 righe
+
+1) GUI si avvia con JavaFX.
+2) Controller crea modello e avvia server socket su 8080.
+3) Ogni connessione crea un handler dedicato.
+4) Ogni handler elabora 1 richiesta testuale e chiude.
+5) Le email sono oggetti `Email` serializzabili.
+6) `ServerModel` è l’orchestratore di business e persistenza.
+7) `Mailbox` tiene ricevute e inviate (liste osservabili per la GUI).
+8) `FileManager` salva/carica mailbox su file `.dat` con lock.
+9) I log sono `ObservableList` aggiornati su thread JavaFX via `Platform.runLater`.
+10) Si esegue con `mvn javafx:run` e si osservano i log dalla GUI.
+
+— Fine guida —
