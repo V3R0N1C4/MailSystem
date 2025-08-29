@@ -206,7 +206,7 @@ public class ClientHandler implements Runnable {
 
             boolean deleted = model.deleteEmail(emailAddress, emailId, isSent);
             out.println(deleted ? "OK:Email eliminata" : "ERROR:Email non trovata");
-            model.addToLog("Email eliminata da: " + emailAddress);
+//            model.addToLog("Email eliminata da: " + emailAddress);
 
         } catch (Exception e) {
             out.println("ERROR:Errore nell'eliminazione dell'email: " + e.getMessage());

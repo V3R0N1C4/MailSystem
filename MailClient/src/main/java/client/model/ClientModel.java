@@ -82,7 +82,7 @@ public class ClientModel {
      * Sincronizza la casella di posta con il server.
      * Recupera nuove email e aggiorna la inbox.
      */
-    private void syncWithServer() {
+    public void syncWithServer() {
         if (userEmail != null && connected) {
             try {
                 List<Email> newEmails = serverConnection.getNewEmails(userEmail, lastEmailIndex);

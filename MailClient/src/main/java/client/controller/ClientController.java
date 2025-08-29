@@ -2,63 +2,76 @@ package client.controller;
 
 import client.model.ClientModel;
 import client.model.Email;
+import javafx.application.Platform;
+
+import java.util.function.Consumer;
 
 /**
  * Controller principale per la gestione delle operazioni del client email.
+ * Gestisce la logica di business e l'esecuzione di task in background.
  */
 public class ClientController {
-    // Modello che gestisce i dati e le operazioni principali
-    private ClientModel model;
+    private final ClientModel model;
 
-    /**
-     * Costruttore che inizializza il modello.
-     */
     public ClientController() {
         this.model = new ClientModel();
     }
 
     /**
-     * Autentica un utente dato l'indirizzo email.
-     * @param email l'indirizzo email dell'utente
-     * @return true se l'autenticazione ha successo, false altrimenti
+     * Esegue l'autenticazione dell'utente in un thread separato.
+     * @param email l'email dell'utente
+     * @param callback il callback da eseguire sul thread FX con il risultato (true/false)
      */
-    public boolean authenticateUser(String email) {
-        return model.authenticateUser(email);
+    public void authenticateUserAsync(String email, Consumer<Boolean> callback) {
+        Thread authThread = new Thread(() -> {
+            boolean success = model.authenticateUser(email);
+            Platform.runLater(() -> callback.accept(success));
+        });
+        authThread.setDaemon(true);
+        authThread.start();
     }
 
     /**
-     * Invia una email tramite il modello.
-     * Se l'invio ha successo (ovvero il risultato è null), aggiunge l'email alla lista delle email inviate.
-     * @param email l'oggetto Email da inviare
-     * @return null se l'invio ha successo, altrimenti una stringa con il messaggio di errore
+     * Invia un'email in un thread separato.
+     * @param email l'email da inviare
+     * @param callback il callback da eseguire sul thread FX con il risultato (null in caso di successo, altrimenti messaggio di errore)
      */
-    public String sendEmail(Email email) {
-        String result = model.sendEmail(email);
-        if (result == null) {
-            model.addToSentEmails(email);
-        }
-        return result;
+    public void sendEmailAsync(Email email, Consumer<String> callback) {
+        Thread sendThread = new Thread(() -> {
+            String result = model.sendEmail(email);
+            if (result == null) {
+                model.addToSentEmails(email);
+            }
+            Platform.runLater(() -> callback.accept(result));
+        });
+        sendThread.setDaemon(true);
+        sendThread.start();
     }
 
     /**
-     * Elimina una email specificando se è un'email inviata.
-     * @param email l'oggetto Email da eliminare
-     * @param isSent true se è un'email inviata, false se è in ricevuta
-     * @return true se l'eliminazione ha successo, false altrimenti
+     * Elimina un'email in un thread separato.
+     * @param email l'email da eliminare
+     * @param isSent true se l'email è nella cartella inviati
+     * @param callback il callback da eseguire sul thread FX con il risultato (true/false)
      */
-    public boolean deleteEmail(Email email, boolean isSent) {
-        return model.deleteEmail(email, isSent);
+    public void deleteEmailAsync(Email email, boolean isSent, Consumer<Boolean> callback) {
+        Thread deleteThread = new Thread(() -> {
+            boolean success = model.deleteEmail(email, isSent);
+            Platform.runLater(() -> callback.accept(success));
+        });
+        deleteThread.setDaemon(true);
+        deleteThread.start();
     }
 
     /**
-     * Esegue le operazioni di chiusura del modello.
+     * Esegue lo shutdown del modello.
      */
     public void shutdown() {
         model.shutdown();
     }
 
     /**
-     * Restituisce il modello associato al controller.
+     * Restituisce il modello associato.
      * @return il ClientModel
      */
     public ClientModel getModel() {
