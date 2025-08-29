@@ -1,8 +1,0 @@
-server/network/SocketServer.class
-server/controller/ClientHandler.class
-server/controller/ServerController.class
-server/model/ServerModel.class
-server/storage/FileManager.class
-server/model/Mailbox.class
-server/model/Email.class
-server/ServerApplication.class

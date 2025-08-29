@@ -16,3 +16,39 @@ MailServer/maildata/*.dat
 # Keep any project-specific ignores below
 MailClient/.vscode/launch.json
 MailClient/.vscode/settings.json
+
+## General Java / Maven artifacts
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+!.mvn/wrapper/maven-wrapper.jar
+
+## IDEs
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+bin/
+out/
+
+## Logs / temp
+*.log
+logs/
+tmp/
+temp/
+*.tmp
+hs_err_pid*
+replay_pid*
+
+## OS junk
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+## Mail server data (optional: ignore all data files)
+# Uncomment to ignore entire folder except a placeholder file
+# MailServer/maildata/**
+# !MailServer/maildata/.gitkeep

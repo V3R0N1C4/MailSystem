@@ -1,5 +1,15 @@
 package client.view;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.ResourceBundle;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import client.controller.ClientController;
+import client.model.ClientModel;
+import client.model.Email;
 import client.model.EmailValidator;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -7,21 +17,21 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.control.SplitPane;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-
-import client.controller.ClientController;
-import client.model.ClientModel;
-import client.model.Email;
-
-import java.io.IOException;
-import java.net.URL;
-import java.util.ResourceBundle;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Controller della vista principale del client di posta.
@@ -209,7 +219,7 @@ public class ClientViewController implements Initializable {
 
         // Aggiorna il titolo della finestra
         Stage stage = (Stage) emailField.getScene().getWindow();
-        stage.setTitle("Mail Client - " + model.getUserEmail());
+        stage.setTitle("Mail Client - " + controller.getModel().getUserEmail());
     }
 
     /**
