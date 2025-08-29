@@ -24,7 +24,16 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Controller della vista principale del client di posta.
- * Gestisce l'interazione tra l'utente e il modello, aggiornando la UI e rispondendo agli eventi.
+ * <p>
+ * Responsabilità principali:
+ * - orchestrare l'autenticazione e la gestione della sessione utente;
+ * - collegare il {@link client.controller.ClientController} al modello e alla UI;
+ * - configurare e sincronizzare le ListView (Posta in arrivo / Inviata);
+ * - gestire le azioni dell'utente (login, compose, reply, forward, delete, refresh, logout);
+ * - aggiornare periodicamente lo stato di connessione in UI senza bloccare il thread JavaFX.
+ * </p>
+ * Tutte le operazioni potenzialmente lunghe sono eseguite off-UI thread; gli aggiornamenti UI avvengono via
+ * {@link javafx.application.Platform#runLater(Runnable)}.
  */
 public class ClientViewController implements Initializable {
 
@@ -59,9 +68,14 @@ public class ClientViewController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        // Inizializza/Resetta lo stato dell'intera sessione all'apertura della view
         resetSession();
     }
 
+    /**
+     * Reinizializza la sessione: chiude eventuali risorse precedenti, ricrea controller e model, e prepara la UI.
+     * Non blocca il thread JavaFX: l'inizializzazione della UI è delegata a Platform.runLater.
+     */
     private void resetSession() {
         if (connectionStatusUpdater != null) connectionStatusUpdater.shutdownNow();
         if (controller != null) controller.shutdown();
@@ -72,30 +86,41 @@ public class ClientViewController implements Initializable {
         Platform.runLater(() -> {
             Stage stage = (Stage) emailField.getScene().getWindow();
             uiManager = new UIManager(stage, authBox, toolbarBox, mainSplitPane, connectionStatus, senderLabel, recipientsLabel, subjectLabel, dateLabel, bodyTextArea, replyButton, replyAllButton, forwardButton, deleteButton);
+            // Mostra la schermata di login come stato iniziale
             uiManager.showLoginScreen();
 
             inboxListView.setItems(model.getInbox());
             sentListView.setItems(model.getSentEmails());
 
-            setupListViews();
-            startConnectionStatusUpdater();
+            setupListViews();               // Configura celle, listener e sincronizzazione selezioni
+            startConnectionStatusUpdater(); // Aggiornamento periodico dello stato di connessione
 
             emailField.requestFocus();
         });
     }
 
+    /**
+     * Configura le ListView di posta in arrivo e inviata, compresa la factory delle celle e i listener
+     * per mantenere selezioni mutualmente esclusive tra le due liste.
+     */
     private void setupListViews() {
         EmailListViewConfigurator.configure(inboxListView, false, this::handleEmailSelection);
         EmailListViewConfigurator.configure(sentListView, true, this::handleEmailSelection);
 
         inboxListView.getSelectionModel().selectedItemProperty().addListener((obs, oldV, newV) -> {
+        // Se seleziono nella Inbox, svuoto la selezione della Sent
             if (newV != null) sentListView.getSelectionModel().clearSelection();
         });
         sentListView.getSelectionModel().selectedItemProperty().addListener((obs, oldV, newV) -> {
+        // Se seleziono nella Sent, svuoto la selezione della Inbox
             if (newV != null) inboxListView.getSelectionModel().clearSelection();
         });
     }
 
+    /**
+     * Avvia un task schedulato che aggiorna periodicamente (ogni 2 secondi) lo stato di connessione
+     * visualizzato nella UI. L'aggiornamento del label avviene sul thread JavaFX.
+     */
     private void startConnectionStatusUpdater() {
         connectionStatusUpdater = Executors.newSingleThreadScheduledExecutor();
         connectionStatusUpdater.scheduleAtFixedRate(() ->
@@ -104,6 +129,10 @@ public class ClientViewController implements Initializable {
     }
 
     @FXML
+    /**
+     * Gestisce il click sul pulsante di login: valida il formato email e richiede autenticazione asincrona.
+     * In caso di successo mostra l'interfaccia principale, altrimenti segnala errore e mantiene il focus sul campo.
+     */
     private void handleLogin() {
         String email = emailField.getText().trim();
         if (email.isEmpty()) {
@@ -128,6 +157,10 @@ public class ClientViewController implements Initializable {
         });
     }
 
+    /**
+     * Callback di selezione email dalla ListView: aggiorna i dettagli e abilita le azioni contestuali.
+     * @param email email selezionata
+     */
     private void handleEmailSelection(Email email) {
         this.selectedEmail = email;
         uiManager.displayEmailDetails(email);
@@ -136,6 +169,10 @@ public class ClientViewController implements Initializable {
     }
 
     @FXML
+    /**
+     * Gestione eliminazione email: chiede conferma e, se positivo, invoca la cancellazione asincrona
+     * lato controller. In caso di esito positivo, pulisce i dettagli e disabilita le azioni.
+     */
     private void handleDelete() {
         if (selectedEmail == null) return;
 
@@ -156,32 +193,50 @@ public class ClientViewController implements Initializable {
     }
 
     @FXML
+    /**
+     * Logout: arresta le risorse e ripristina lo stato iniziale dell'applicazione.
+     */
     private void handleLogout() {
         shutdown();
         resetSession();
     }
 
     @FXML
+    /**
+     * Apre la finestra di composizione per una nuova email.
+     */
     private void handleCompose() {
         openComposeWindow(null, false, false);
     }
 
     @FXML
+    /**
+     * Apre la finestra di composizione predisponendo una risposta al mittente.
+     */
     private void handleReply() {
         if (selectedEmail != null) openComposeWindow(selectedEmail, true, false);
     }
 
     @FXML
+    /**
+     * Apre la finestra di composizione predisponendo una risposta a tutti i destinatari (escluso l'utente corrente).
+     */
     private void handleReplyAll() {
         if (selectedEmail != null) openComposeWindow(selectedEmail, true, true);
     }
 
     @FXML
+    /**
+     * Apre la finestra di composizione predisponendo l'inoltro dell'email selezionata.
+     */
     private void handleForward() {
         if (selectedEmail != null) openComposeWindow(selectedEmail, false, false);
     }
 
     @FXML
+    /**
+     * Forza una sincronizzazione manuale con il server se connessi. Eseguito su thread separato.
+     */
     private void handleRefresh() {
         // Forza una sincronizzazione manuale con il server
         if (model != null && model.isConnected()) {
@@ -189,6 +244,12 @@ public class ClientViewController implements Initializable {
         }
     }
 
+    /**
+     * Apre la finestra di composizione e, se necessario, precompila campi per reply/forward.
+     * @param email       email di riferimento (null per nuova email)
+     * @param isReply     true per risposta
+     * @param isReplyAll  true per risposta a tutti (valido solo se isReply è true)
+     */
     private void openComposeWindow(Email email, boolean isReply, boolean isReplyAll) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/client/view/ComposeView.fxml"));
@@ -212,6 +273,10 @@ public class ClientViewController implements Initializable {
         }
     }
 
+    /**
+     * Arresta risorse in background (scheduler) e chiude la connessione del controller.
+     * Da invocare in chiusura o al logout.
+     */
     public void shutdown() {
         if (connectionStatusUpdater != null) connectionStatusUpdater.shutdownNow();
         if (controller != null) controller.shutdown();

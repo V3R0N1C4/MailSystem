@@ -7,6 +7,10 @@ import java.util.Optional;
 
 /**
  * Classe di utilità per mostrare dialoghi e alert in modo centralizzato.
+ * <p>
+ * Fornisce metodi statici per uniformare la creazione di finestre modali (Alert/Confirmation)
+ * all'interno dell'applicazione JavaFX.
+ * </p>
  */
 public class DialogManager {
 

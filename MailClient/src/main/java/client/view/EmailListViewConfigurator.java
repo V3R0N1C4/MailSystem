@@ -10,6 +10,9 @@ import java.util.function.Consumer;
 
 /**
  * Classe di utilità per configurare le ListView di email.
+ * <p>
+ * Fornisce una factory di celle personalizzate e un listener per notificare la selezione di email.
+ * </p>
  */
 public class EmailListViewConfigurator {
 
@@ -47,6 +50,7 @@ public class EmailListViewConfigurator {
                 setText(null);
                 setGraphic(null);
             } else {
+                // Costruisce un layout semplice per ogni riga: soggetto/destinatari, mittente e timestamp
                 VBox content = new VBox(2);
                 Label subjectLabel = new Label();
                 Label detailsLabel = new Label();
